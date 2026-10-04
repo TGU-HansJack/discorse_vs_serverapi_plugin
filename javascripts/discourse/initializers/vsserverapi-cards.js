@@ -2,7 +2,6 @@ import { withPluginApi } from "discourse/lib/plugin-api";
 
 const DISPLAY_FIELDS = [
   ["profileName", "配置"],
-  ["profileId", "配置 ID"],
   ["version", "游戏版本"],
   ["isRunning", "运行状态"],
   ["onlinePlayers", "在线玩家"],
@@ -90,7 +89,7 @@ function renderMods(mods) {
     const tag = `<span class="vsserverapi-mod-tag">${escapeHtml(name)}</span>`;
     return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${tag}</a>` : tag;
   }).filter(Boolean).join("");
-  return `<details class="vsserverapi-mods"><summary>模组列表 <span>${mods.length}</span></summary><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></details>`;
+  return `<section class="vsserverapi-mods"><h4>模组列表 <span>${mods.length}</span></h4><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
 }
 
 function renderCard(container, data, apiUrl) {

@@ -23,10 +23,10 @@
 .vsserverapi-field { min-width: 0; }
 .vsserverapi-field dt { color: var(--primary-medium); font-size: .78rem; }
 .vsserverapi-field dd { margin: .12rem 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
-.vsserverapi-mods { border-top: 1px solid var(--primary-low); padding: .75rem 1rem 1rem; }
-.vsserverapi-mods summary { cursor: pointer; color: var(--primary); font-weight: 600; }
-.vsserverapi-mods summary span { color: var(--primary-medium); font-weight: 400; }
-.vsserverapi-mod-tags { display: flex; flex-wrap: wrap; gap: .4rem; padding-top: .7rem; }
+.vsserverapi-mods { padding-top: .85rem; }
+.vsserverapi-mods h4 { margin: 0 0 .55rem; color: var(--primary); font-size: .95rem; font-weight: 600; }
+.vsserverapi-mods h4 span { color: var(--primary-medium); font-weight: 400; }
+.vsserverapi-mod-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
 .vsserverapi-mod-tag { display: inline-block; padding: .22rem .55rem; border: 1px solid var(--primary-low); border-radius: 999px; background: var(--primary-very-low); color: var(--primary); font-size: .8rem; }
 .vsserverapi-mods a { text-decoration: none; }
 .vsserverapi-mods a:hover .vsserverapi-mod-tag { border-color: var(--tertiary); color: var(--tertiary); }
