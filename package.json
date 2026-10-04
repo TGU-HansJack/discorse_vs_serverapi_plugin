@@ -1,0 +1,13 @@
+{
+  "name": "discourse-vsserverapi",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "preview": "node tests/preview-server.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "sass": "1.105.1"
+  }
+}

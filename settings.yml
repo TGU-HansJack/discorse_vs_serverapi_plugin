@@ -1,0 +1,4 @@
+svg_icons:
+  default: "chevron-down|chevron-up|plus|minus|rotate-left"
+  type: list
+  list_type: compact

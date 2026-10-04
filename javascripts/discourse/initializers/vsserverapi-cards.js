@@ -1,4 +1,5 @@
 import { withPluginApi } from "discourse/lib/plugin-api";
+import { historyMarkup, loadHistory } from "../lib/vsserverapi-history";
 
 const DISPLAY_FIELDS = [
   ["profileName", "配置"],
@@ -66,7 +67,7 @@ function resolveAssetUrl(value, apiUrl) {
 }
 
 function renderInfo(data) {
-  const known = new Set(DISPLAY_FIELDS.map(([key]) => key).concat(["profileId", "serverName", "description", "coverUrl", "mods"]));
+  const known = new Set(DISPLAY_FIELDS.map(([key]) => key).concat(["profileId", "serverName", "description", "coverUrl", "mods", "hourlyPlayerCounts", "playerCountHistoryHours"]));
   const rows = [];
   for (const [key, label] of DISPLAY_FIELDS) {
     if (!(key in data)) continue;
@@ -109,7 +110,8 @@ function renderCard(container, data, apiUrl) {
   card.innerHTML = `<div class="vsserverapi-main">` +
     `<div class="vsserverapi-cover-wrap">${cover ? `<img class="vsserverapi-cover" src="${escapeHtml(cover)}" alt="" loading="lazy">` : `<div class="vsserverapi-cover-placeholder" aria-hidden="true">VS</div>`}</div>` +
     `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span>${modsToggle}</div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
-    renderMods(data.mods, modsSectionId);
+    historyMarkup() + renderMods(data.mods, modsSectionId);
+  loadHistory(card.querySelector(".vsserverapi-history"), data, apiUrl);
   const toggle = card.querySelector(".vsserverapi-mod-toggle");
   const modsSection = card.querySelector(`#${modsSectionId}`);
   if (toggle && modsSection) {
