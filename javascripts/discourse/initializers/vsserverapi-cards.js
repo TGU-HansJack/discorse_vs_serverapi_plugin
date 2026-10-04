@@ -105,7 +105,7 @@ function renderCard(container, data, apiUrl) {
   const description = data.description ? `<p class="vsserverapi-description">${escapeHtml(data.description)}</p>` : "";
   const modsSectionId = `vsserverapi-mods-${++modsSectionSequence}`;
   const modsToggle = Array.isArray(data.mods) ?
-    `<button type="button" class="btn no-text btn-flat vsserverapi-mod-toggle" aria-controls="${modsSectionId}" aria-expanded="true" aria-label="收起模组列表" title="收起模组列表"><svg class="fa d-icon d-icon-chevron-up svg-icon fa-width-auto" width="1em" height="1em" aria-hidden="true"><use href="#chevron-up"></use></svg></button>` : "";
+    `<button type="button" class="btn no-text btn-flat vsserverapi-mod-toggle" aria-controls="${modsSectionId}" aria-expanded="false" aria-label="展开模组列表" title="展开模组列表"><svg class="fa d-icon d-icon-chevron-down svg-icon fa-width-auto" width="1em" height="1em" aria-hidden="true"><use href="#chevron-down"></use></svg></button>` : "";
   card.innerHTML = `<div class="vsserverapi-main">` +
     `<div class="vsserverapi-cover-wrap">${cover ? `<img class="vsserverapi-cover" src="${escapeHtml(cover)}" alt="" loading="lazy">` : `<div class="vsserverapi-cover-placeholder" aria-hidden="true">VS</div>`}</div>` +
     `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span>${modsToggle}</div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
@@ -113,6 +113,7 @@ function renderCard(container, data, apiUrl) {
   const toggle = card.querySelector(".vsserverapi-mod-toggle");
   const modsSection = card.querySelector(`#${modsSectionId}`);
   if (toggle && modsSection) {
+    modsSection.hidden = true;
     toggle.addEventListener("click", () => {
       const expanded = toggle.getAttribute("aria-expanded") === "true";
       toggle.setAttribute("aria-expanded", String(!expanded));
