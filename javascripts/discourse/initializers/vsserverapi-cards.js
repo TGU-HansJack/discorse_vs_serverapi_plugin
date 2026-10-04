@@ -9,6 +9,8 @@ const DISPLAY_FIELDS = [
   ["uptimeSeconds", "运行时长"]
 ];
 
+let modsSectionSequence = 0;
+
 function normalizeApiUrl(value) {
   const source = String(value || "").trim()
     .replace(/&amp;/gi, "&")
@@ -80,7 +82,7 @@ function renderInfo(data) {
   return rows.join("");
 }
 
-function renderMods(mods) {
+function renderMods(mods, sectionId) {
   if (!Array.isArray(mods)) return "";
   const tags = mods.map((mod) => {
     const name = mod && (mod.name || mod.modId);
@@ -89,7 +91,7 @@ function renderMods(mods) {
     const tag = `<span class="vsserverapi-mod-tag">${escapeHtml(name)}</span>`;
     return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${tag}</a>` : tag;
   }).filter(Boolean).join("");
-  return `<section class="vsserverapi-mods"><h4>模组列表 <span>${mods.length}</span></h4><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
+  return `<section class="vsserverapi-mods" id="${sectionId}"><h4>模组列表 <span>${mods.length}</span></h4><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
 }
 
 function renderCard(container, data, apiUrl) {
@@ -101,10 +103,26 @@ function renderCard(container, data, apiUrl) {
   const statusClass = hasStatus ? (data.isRunning ? "is-online" : "is-offline") : "is-unknown";
   const statusText = hasStatus ? (data.isRunning ? "运行中" : "已停止") : "状态未知";
   const description = data.description ? `<p class="vsserverapi-description">${escapeHtml(data.description)}</p>` : "";
+  const modsSectionId = `vsserverapi-mods-${++modsSectionSequence}`;
+  const modsToggle = Array.isArray(data.mods) ?
+    `<button type="button" class="btn no-text btn-flat vsserverapi-mod-toggle" aria-controls="${modsSectionId}" aria-expanded="true" aria-label="收起模组列表" title="收起模组列表"><svg class="fa d-icon d-icon-chevron-up svg-icon fa-width-auto" width="1em" height="1em" aria-hidden="true"><use href="#chevron-up"></use></svg></button>` : "";
   card.innerHTML = `<div class="vsserverapi-main">` +
     `<div class="vsserverapi-cover-wrap">${cover ? `<img class="vsserverapi-cover" src="${escapeHtml(cover)}" alt="" loading="lazy">` : `<div class="vsserverapi-cover-placeholder" aria-hidden="true">VS</div>`}</div>` +
-    `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span></div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
-    renderMods(data.mods);
+    `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span>${modsToggle}</div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
+    renderMods(data.mods, modsSectionId);
+  const toggle = card.querySelector(".vsserverapi-mod-toggle");
+  const modsSection = card.querySelector(`#${modsSectionId}`);
+  if (toggle && modsSection) {
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", String(!expanded));
+      toggle.setAttribute("aria-label", `${expanded ? "展开" : "收起"}模组列表`);
+      toggle.setAttribute("title", `${expanded ? "展开" : "收起"}模组列表`);
+      modsSection.hidden = expanded;
+      const icon = toggle.querySelector("use");
+      if (icon) icon.setAttribute("href", expanded ? "#chevron-down" : "#chevron-up");
+    });
+  }
   const image = card.querySelector("img");
   if (image) image.addEventListener("error", () => image.replaceWith(Object.assign(document.createElement("div"), { className: "vsserverapi-cover-placeholder", textContent: "VS" })), { once: true });
 }

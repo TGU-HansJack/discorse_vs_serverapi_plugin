@@ -14,6 +14,8 @@
 .vsserverapi-summary { min-width: 0; flex: 1; }
 .vsserverapi-title-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
 .vsserverapi-title-row h3 { margin: 0; font-size: 1.25rem; line-height: 1.3; }
+.vsserverapi-mod-toggle { margin-left: auto; flex: 0 0 auto; color: var(--primary-medium); }
+.vsserverapi-mod-toggle:hover { color: var(--primary); }
 .vsserverapi-status { padding: .18rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 600; }
 .vsserverapi-status.is-online { color: var(--success); background: var(--success-low); }
 .vsserverapi-status.is-offline { color: var(--danger); background: var(--danger-low); }
