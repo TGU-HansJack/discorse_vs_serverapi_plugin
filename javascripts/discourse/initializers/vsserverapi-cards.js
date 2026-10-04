@@ -11,7 +11,14 @@ const DISPLAY_FIELDS = [
 ];
 
 function normalizeApiUrl(value) {
-  const input = String(value || "").trim();
+  const source = String(value || "").trim()
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+  const href = source.match(/href\s*=\s*["']([^"']+)["']/i);
+  const explicitUrl = source.match(/https?:\/\/[^\s<>"']+/i);
+  const bareUrl = source.match(/(?:localhost|(?:\d{1,3}\.){3}\d{1,3}|[a-z0-9.-]+)(?::\d+)(?:\/[^\s<>"']*)?/i);
+  const input = (href?.[1] || explicitUrl?.[0] || bareUrl?.[0] || source).trim();
   if (!input) return null;
   const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(input) ? input : `http://${input}`;
   try {
