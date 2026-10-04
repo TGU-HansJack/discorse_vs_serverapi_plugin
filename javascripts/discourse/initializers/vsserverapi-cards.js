@@ -108,6 +108,23 @@ function showError(container, message) {
   if (card) card.innerHTML = `<div class="vsserverapi-error" role="alert">${escapeHtml(message)}</div>`;
 }
 
+function escapeAttribute(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[character]));
+}
+
+function convertMarkdownMarkers(element) {
+  const marker = /\[vsserverapi(?:=([^\]\r\n]+))?\]\s*([\s\S]*?)\s*\[vsserverapi\]/gi;
+  if (!marker.test(element.innerHTML)) return;
+  marker.lastIndex = 0;
+  element.innerHTML = element.innerHTML.replace(marker, (_match, rawUrl, body) =>
+    `<div class="vsserverapi-embed" data-vsserverapi-url="${escapeAttribute((rawUrl || "").trim())}">` +
+    `<div class="vsserverapi-card" data-vsserverapi-card><div class="vsserverapi-loading" aria-live="polite">正在加载服务器信息…</div></div>` +
+    `<div class="vsserverapi-content">${body || ""}</div></div>`
+  );
+}
+
 async function loadCard(container) {
   const rawUrl = container.dataset.vsserverapiUrl;
   const apiUrl = normalizeApiUrl(rawUrl);
@@ -129,6 +146,7 @@ export default {
   initialize() {
     withPluginApi("0.8.31", (api) => {
       api.decorateCookedElement((element) => {
+        convertMarkdownMarkers(element);
         element.querySelectorAll(".vsserverapi-embed").forEach((container) => {
           if (!container.dataset.vsserverapiLoaded) {
             container.dataset.vsserverapiLoaded = "true";

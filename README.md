@@ -10,4 +10,4 @@ Use it in a topic post like this:
 [vsserverapi]
 ```
 
-The API response is fetched by the browser. The endpoint must return JSON and allow CORS from the Discourse origin. URLs without a scheme are treated as `http://`; HTTPS pages cannot fetch an HTTP endpoint because of browser mixed-content rules.
+The component detects the marker after Discourse renders a post. The API response is fetched by the browser. The endpoint must return JSON and allow CORS from the Discourse origin. URLs without a scheme are treated as `http://`; HTTPS pages cannot fetch an HTTP endpoint because of browser mixed-content rules.
