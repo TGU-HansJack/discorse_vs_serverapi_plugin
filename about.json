@@ -1,0 +1,9 @@
+{
+  "name": "vsserverapi",
+  "component": true,
+  "about": "Render LauncherGo Vintage Story server API cards in Discourse posts.",
+  "version": "1.0.0",
+  "authors": "VSCN Studio",
+  "url": "https://github.com/vscn-studio/LauncherGo",
+  "license": "MIT"
+}

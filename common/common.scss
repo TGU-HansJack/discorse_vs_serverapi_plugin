@@ -1,0 +1,41 @@
+.vsserverapi-embed {
+  margin: 1em 0;
+  border: 1px solid var(--primary-low);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--secondary);
+}
+
+.vsserverapi-card { padding: 1rem; }
+.vsserverapi-main { display: flex; gap: 1rem; align-items: flex-start; }
+.vsserverapi-cover-wrap { flex: 0 0 clamp(96px, 18vw, 180px); aspect-ratio: 1.45; }
+.vsserverapi-cover, .vsserverapi-cover-placeholder { width: 100%; height: 100%; border-radius: 6px; object-fit: cover; }
+.vsserverapi-cover-placeholder { display: grid; place-items: center; background: var(--primary-low); color: var(--primary-medium); font-size: 1.5rem; font-weight: 700; }
+.vsserverapi-summary { min-width: 0; flex: 1; }
+.vsserverapi-title-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.vsserverapi-title-row h3 { margin: 0; font-size: 1.25rem; line-height: 1.3; }
+.vsserverapi-status { padding: .18rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+.vsserverapi-status.is-online { color: var(--success); background: var(--success-low); }
+.vsserverapi-status.is-offline { color: var(--danger); background: var(--danger-low); }
+.vsserverapi-status.is-unknown { color: var(--primary-medium); background: var(--primary-very-low); }
+.vsserverapi-description { margin: .5rem 0; color: var(--primary-medium); white-space: pre-wrap; }
+.vsserverapi-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .5rem .85rem; margin: .75rem 0 0; }
+.vsserverapi-field { min-width: 0; }
+.vsserverapi-field dt { color: var(--primary-medium); font-size: .78rem; }
+.vsserverapi-field dd { margin: .12rem 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.vsserverapi-mods { border-top: 1px solid var(--primary-low); padding: .75rem 1rem 1rem; }
+.vsserverapi-mods summary { cursor: pointer; color: var(--primary); font-weight: 600; }
+.vsserverapi-mods summary span { color: var(--primary-medium); font-weight: 400; }
+.vsserverapi-mod-tags { display: flex; flex-wrap: wrap; gap: .4rem; padding-top: .7rem; }
+.vsserverapi-mod-tag { display: inline-block; padding: .22rem .55rem; border: 1px solid var(--primary-low); border-radius: 999px; background: var(--primary-very-low); color: var(--primary); font-size: .8rem; }
+.vsserverapi-mods a { text-decoration: none; }
+.vsserverapi-mods a:hover .vsserverapi-mod-tag { border-color: var(--tertiary); color: var(--tertiary); }
+.vsserverapi-loading, .vsserverapi-error { color: var(--primary-medium); padding: .75rem; }
+.vsserverapi-error { color: var(--danger); }
+.vsserverapi-content { padding: 0 1rem 1rem; }
+
+@media (max-width: 600px) {
+  .vsserverapi-main { gap: .75rem; }
+  .vsserverapi-cover-wrap { flex-basis: 92px; }
+  .vsserverapi-title-row h3 { font-size: 1.1rem; }
+}
