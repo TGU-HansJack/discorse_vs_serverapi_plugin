@@ -124,11 +124,13 @@ function convertMarkdownMarkers(element) {
   const marker = /\[vsserverapi(?:=([^\]\r\n]+))?\]\s*([\s\S]*?)\s*\[vsserverapi\]/gi;
   if (!marker.test(element.innerHTML)) return;
   marker.lastIndex = 0;
-  element.innerHTML = element.innerHTML.replace(marker, (_match, rawUrl, body) =>
-    `<div class="vsserverapi-embed" data-vsserverapi-url="${escapeAttribute((rawUrl || "").trim())}">` +
+  element.innerHTML = element.innerHTML.replace(marker, (_match, rawUrl, body) => {
+    const content = String(body || "").replace(/^\s*(?:<br\s*\/?>\s*)+|(?:<br\s*\/?>\s*)+\s*$/gi, "").trim();
+    return `<div class="vsserverapi-embed" data-vsserverapi-url="${escapeAttribute((rawUrl || "").trim())}">` +
     `<div class="vsserverapi-card" data-vsserverapi-card><div class="vsserverapi-loading" aria-live="polite">正在加载服务器信息…</div></div>` +
-    `<div class="vsserverapi-content">${body || ""}</div></div>`
-  );
+    (content ? `<div class="vsserverapi-content">${content}</div>` : "") +
+    `</div>`;
+  });
 }
 
 async function loadCard(container) {
