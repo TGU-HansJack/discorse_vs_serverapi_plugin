@@ -31,6 +31,13 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   const scroll = chart.locator(".vsserverapi-history-scroll");
   const zoom = page.getByRole("button", { name: "放大时间轴" });
   const reset = page.getByRole("button", { name: "重置为最近 7 天" });
+  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/hourlyPlayerCounts|profileId|playerCountHistoryHours/);
+  await expect(chart).toBeHidden();
+  await expect(page.locator(".vsserverapi-mods")).toBeHidden();
+  expect(await page.locator(".vsserverapi-history").evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
+  await page.getByRole("button", { name: "展开图表和模组列表" }).click();
+  await expect(chart).toBeVisible();
+  await expect(page.locator(".vsserverapi-mods")).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
   await expect(chart.locator(".u-axis")).toHaveCount(2);
   expect(await chart.locator("canvas").evaluate((canvas) => {
@@ -45,8 +52,9 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
     }
     return colored;
   })).toBeGreaterThan(400);
-  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/hourlyPlayerCounts|profileId|playerCountHistoryHours/);
-  await expect(page.locator(".vsserverapi-mods")).toBeHidden();
+  await page.getByRole("button", { name: "收起图表和模组列表" }).click();
+  await expect(chart).toBeHidden();
+  await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await zoom.click();
   await expect(reset).toBeEnabled();
   expect(await scroll.evaluate((el) => el.scrollWidth / el.clientWidth)).toBeCloseTo(2, 1);
@@ -68,14 +76,14 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   for (let i = 0; i < 6; i++) if (await zoom.isEnabled()) await zoom.click();
   await expect(zoom).toBeDisabled();
   await reset.click();
-  await page.getByRole("button", { name: "展开模组列表" }).click();
   await expect(page.getByRole("link", { name: "Carry On" })).toBeVisible();
-  await page.getByRole("button", { name: "收起模组列表" }).click();
+  await page.getByRole("button", { name: "收起图表和模组列表" }).click();
   await page.screenshot({ path: "test-results/history-desktop.png", fullPage: true });
   await page.evaluate(() => window.addCard());
   await expect(page.locator("canvas")).toHaveCount(2);
   await page.locator("article").evaluate((el) => el.remove());
   await page.waitForTimeout(100);
+  await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await zoom.click();
   expect(errors).toEqual([]);
   expect(historyRequests).toEqual([]);
@@ -85,10 +93,12 @@ test("fallback, empty, failed and single zero histories do not break the card", 
   for (const mode of ["fallback", "empty", "error", "zero"]) {
     await page.goto(`/?mode=${mode}`);
     await expect(page.locator(".vsserverapi-title-row h3")).toContainText("Vintage Story");
+    await expect(page.locator(".vsserverapi-history")).toBeHidden();
     if (mode === "empty") await expect(page.locator(".vsserverapi-history-status")).toContainText("暂无玩家历史记录");
     else if (mode === "error") await expect(page.locator(".vsserverapi-history-status")).toContainText("HTTP 503");
-    else await expect(page.locator("canvas")).toBeVisible();
-    await page.getByRole("button", { name: "展开模组列表" }).click();
+    else await expect(page.locator("canvas")).toBeAttached();
+    await page.getByRole("button", { name: "展开图表和模组列表" }).click();
+    if (! ["empty", "error"].includes(mode)) await expect(page.locator("canvas")).toBeVisible();
     await expect(page.getByRole("link", { name: "Carry On" })).toBeVisible();
     if (mode === "zero") await expect(page.locator("output")).toHaveText("峰值 0 人");
   }
@@ -100,6 +110,8 @@ test("mobile and dark layouts fit, resize and support horizontal touch panning",
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("http://127.0.0.1:" + (process.env.PORT || "4179") + "/?dark=1");
+  await expect(page.locator("canvas")).toBeAttached();
+  await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await expect(page.locator("canvas")).toBeVisible();
   await page.getByRole("button", { name: "放大时间轴" }).click();
   const plot = page.locator(".vsserverapi-history-plot");

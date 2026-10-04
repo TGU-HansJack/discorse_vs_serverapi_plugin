@@ -83,7 +83,7 @@ function renderInfo(data) {
   return rows.join("");
 }
 
-function renderMods(mods, sectionId) {
+function renderMods(mods) {
   if (!Array.isArray(mods)) return "";
   const tags = mods.map((mod) => {
     const name = mod && (mod.name || mod.modId);
@@ -92,7 +92,7 @@ function renderMods(mods, sectionId) {
     const tag = `<span class="vsserverapi-mod-tag">${escapeHtml(name)}</span>`;
     return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${tag}</a>` : tag;
   }).filter(Boolean).join("");
-  return `<section class="vsserverapi-mods" id="${sectionId}"><h4>模组列表 <span>${mods.length}</span></h4><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
+  return `<section class="vsserverapi-mods"><h4>模组列表 <span>${mods.length}</span></h4><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
 }
 
 function renderCard(container, data, apiUrl) {
@@ -104,24 +104,22 @@ function renderCard(container, data, apiUrl) {
   const statusClass = hasStatus ? (data.isRunning ? "is-online" : "is-offline") : "is-unknown";
   const statusText = hasStatus ? (data.isRunning ? "运行中" : "已停止") : "状态未知";
   const description = data.description ? `<p class="vsserverapi-description">${escapeHtml(data.description)}</p>` : "";
-  const modsSectionId = `vsserverapi-mods-${++modsSectionSequence}`;
-  const modsToggle = Array.isArray(data.mods) ?
-    `<button type="button" class="btn no-text btn-flat vsserverapi-mod-toggle" aria-controls="${modsSectionId}" aria-expanded="false" aria-label="展开模组列表" title="展开模组列表"><svg class="fa d-icon d-icon-chevron-down svg-icon fa-width-auto" width="1em" height="1em" aria-hidden="true"><use href="#chevron-down"></use></svg></button>` : "";
+  const detailsId = `vsserverapi-details-${++modsSectionSequence}`;
+  const detailsToggle = `<button type="button" class="btn no-text btn-flat vsserverapi-mod-toggle" aria-controls="${detailsId}" aria-expanded="false" aria-label="展开图表和模组列表" title="展开图表和模组列表"><svg class="fa d-icon d-icon-chevron-down svg-icon fa-width-auto" width="1em" height="1em" aria-hidden="true"><use href="#chevron-down"></use></svg></button>`;
   card.innerHTML = `<div class="vsserverapi-main">` +
     `<div class="vsserverapi-cover-wrap">${cover ? `<img class="vsserverapi-cover" src="${escapeHtml(cover)}" alt="" loading="lazy">` : `<div class="vsserverapi-cover-placeholder" aria-hidden="true">VS</div>`}</div>` +
-    `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span>${modsToggle}</div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
-    historyMarkup() + renderMods(data.mods, modsSectionId);
+    `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span>${detailsToggle}</div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
+    `<div class="vsserverapi-details" id="${detailsId}" hidden>${historyMarkup()}${renderMods(data.mods)}</div>`;
   loadHistory(card.querySelector(".vsserverapi-history"), data, apiUrl);
   const toggle = card.querySelector(".vsserverapi-mod-toggle");
-  const modsSection = card.querySelector(`#${modsSectionId}`);
-  if (toggle && modsSection) {
-    modsSection.hidden = true;
+  const detailsSection = card.querySelector(`#${detailsId}`);
+  if (toggle && detailsSection) {
     toggle.addEventListener("click", () => {
       const expanded = toggle.getAttribute("aria-expanded") === "true";
       toggle.setAttribute("aria-expanded", String(!expanded));
-      toggle.setAttribute("aria-label", `${expanded ? "展开" : "收起"}模组列表`);
-      toggle.setAttribute("title", `${expanded ? "展开" : "收起"}模组列表`);
-      modsSection.hidden = expanded;
+      toggle.setAttribute("aria-label", `${expanded ? "展开" : "收起"}图表和模组列表`);
+      toggle.setAttribute("title", `${expanded ? "展开" : "收起"}图表和模组列表`);
+      detailsSection.hidden = expanded;
       const icon = toggle.querySelector("use");
       if (icon) icon.setAttribute("href", expanded ? "#chevron-down" : "#chevron-up");
     });
