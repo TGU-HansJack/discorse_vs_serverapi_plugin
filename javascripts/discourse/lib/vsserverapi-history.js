@@ -70,6 +70,7 @@ export function calculateDailyBestWindows(times, values, intervalSeconds = SAMPL
       }
       if (!valid || !sampleCount) continue;
       const average = total / sampleCount;
+      if (average <= 0) continue;
       const end = last + intervalSeconds;
       const duration = end - first;
       const current = windows.get(day);

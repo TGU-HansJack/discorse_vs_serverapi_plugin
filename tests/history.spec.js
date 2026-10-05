@@ -48,8 +48,12 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
     const start = Date.parse("2026-10-01T15:00:00Z") / 1000;
     const exactThreeTimes = Array.from({ length: 36 }, (_, i) => start + i * 300);
     const exactThreeValues = exactThreeTimes.map(() => 20);
+    const fractionalHourTimes = Array.from({ length: 41 }, (_, i) => start + i * 300);
+    const fractionalHourValues = fractionalHourTimes.map(() => 20);
     const fiveHourTimes = Array.from({ length: 73 }, (_, i) => start + i * 300);
     const fiveHourValues = fiveHourTimes.map(() => 20);
+    const emptyTimes = Array.from({ length: 61 }, (_, i) => start + i * 300);
+    const emptyValues = emptyTimes.map(() => 0);
     const irregularTimes = Array.from({ length: 36 }, (_, i) => start + (i === 18 ? 19 : i) * 300);
     const irregularValues = irregularTimes.map(() => 20);
     const summarize = (windows) => windows.map(({ day, start: windowStart, end, average }) => ({
@@ -57,17 +61,21 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
     }));
     return {
       exactThree: summarize(calculateDailyBestWindows(exactThreeTimes, exactThreeValues)),
+      fractionalHour: summarize(calculateDailyBestWindows(fractionalHourTimes, fractionalHourValues)),
       fiveHourCrossMidnight: summarize(calculateDailyBestWindows(fiveHourTimes, fiveHourValues)),
+      empty: calculateDailyBestWindows(emptyTimes, emptyValues),
       irregular: calculateDailyBestWindows(irregularTimes, irregularValues),
     };
   });
   const start = Date.parse("2026-10-01T15:00:00Z") / 1000;
   expect(result).toEqual({
     exactThree: [{ day: "2026-10-01", start, end: start + 3 * 3600, duration: 3 * 3600, average: 20 }],
+    fractionalHour: [{ day: "2026-10-01", start, end: start + 3 * 3600 + 25 * 60, duration: 3 * 3600 + 25 * 60, average: 20 }],
     fiveHourCrossMidnight: [
       { day: "2026-10-01", start, end: start + 5 * 3600, duration: 5 * 3600, average: 20 },
       { day: "2026-10-02", start: start + 3600, end: start + 6 * 3600, duration: 5 * 3600, average: 20 },
     ],
+    empty: [],
     irregular: [],
   });
   await context.close();
