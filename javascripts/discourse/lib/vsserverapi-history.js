@@ -7,6 +7,7 @@ const SAMPLE_SECONDS = SAMPLE_MINUTES * 60;
 const MAX_MISSING_SAMPLES = 3;
 const MIN_WINDOW_HOURS = 3;
 const MAX_WINDOW_HOURS = 5;
+const MIN_BEST_AVERAGE = 2;
 const MIN_SPAN = 6 * HOUR;
 const mountedCharts = new Map();
 let removalObserver;
@@ -70,7 +71,7 @@ export function calculateDailyBestWindows(times, values, intervalSeconds = SAMPL
       }
       if (!valid || !sampleCount) continue;
       const average = total / sampleCount;
-      if (average <= 0) continue;
+      if (average < MIN_BEST_AVERAGE) continue;
       const end = last + intervalSeconds;
       const duration = end - first;
       const current = windows.get(day);

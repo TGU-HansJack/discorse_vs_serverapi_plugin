@@ -54,6 +54,8 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
     const fiveHourValues = fiveHourTimes.map(() => 20);
     const emptyTimes = Array.from({ length: 61 }, (_, i) => start + i * 300);
     const emptyValues = emptyTimes.map(() => 0);
+    const lowTimes = Array.from({ length: 37 }, (_, i) => start + i * 300);
+    const lowValues = lowTimes.map((_, i) => i < 12 ? Math.max(0, 6 - Math.floor(i / 2)) : 0);
     const irregularTimes = Array.from({ length: 36 }, (_, i) => start + (i === 18 ? 19 : i) * 300);
     const irregularValues = irregularTimes.map(() => 20);
     const summarize = (windows) => windows.map(({ day, start: windowStart, end, average }) => ({
@@ -64,6 +66,7 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
       fractionalHour: summarize(calculateDailyBestWindows(fractionalHourTimes, fractionalHourValues)),
       fiveHourCrossMidnight: summarize(calculateDailyBestWindows(fiveHourTimes, fiveHourValues)),
       empty: calculateDailyBestWindows(emptyTimes, emptyValues),
+      low: calculateDailyBestWindows(lowTimes, lowValues),
       irregular: calculateDailyBestWindows(irregularTimes, irregularValues),
     };
   });
@@ -76,6 +79,7 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
       { day: "2026-10-02", start: start + 3600, end: start + 6 * 3600, duration: 5 * 3600, average: 20 },
     ],
     empty: [],
+    low: [],
     irregular: [],
   });
   await context.close();
