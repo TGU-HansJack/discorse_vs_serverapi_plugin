@@ -48,9 +48,8 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   await expect(page.locator(".vsserverapi-mods")).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
   await expect(chart.locator(".u-axis")).toHaveCount(2);
-  await expect(chart.locator(".vsserverapi-history-key strong")).toHaveText(/人/);
-  await expect(chart.locator(".vsserverapi-history-best h5")).toHaveText("每日最佳 5 小时");
-  await expect(chart.locator(".vsserverapi-history-best li")).not.toHaveCount(0);
+  await expect(chart.locator(".vsserverapi-history-key, .vsserverapi-history-value, .vsserverapi-history-best")).toHaveCount(0);
+  await expect(chart.locator(".vsserverapi-history-readout")).toBeHidden();
   await page.screenshot({ path: "test-results/history-desktop-expanded.png", fullPage: true });
   expect(await chart.locator("canvas").evaluate((canvas) => {
     const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
@@ -64,6 +63,10 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
     }
     return colored;
   })).toBeGreaterThan(400);
+  const hoverArea = await chart.locator(".u-over").boundingBox();
+  await page.mouse.move(hoverArea.x + hoverArea.width / 2, hoverArea.y + hoverArea.height / 2);
+  await expect(chart.locator(".vsserverapi-history-readout")).toBeVisible();
+  await expect(chart.locator(".vsserverapi-history-readout")).toContainText("人");
   await page.getByRole("button", { name: "收起图表和模组列表" }).click();
   await expect(chart).toBeHidden();
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
@@ -112,7 +115,7 @@ test("fallback, legacy, empty, failed and single zero histories do not break the
     await page.getByRole("button", { name: "展开图表和模组列表" }).click();
     if (! ["empty", "error"].includes(mode)) await expect(page.locator("canvas")).toBeVisible();
     await expect(page.getByRole("link", { name: "Carry On" })).toBeVisible();
-    if (mode === "zero") await expect(page.locator("output")).toHaveText("峰值 0 人");
+    if (mode === "zero") await expect(page.locator(".vsserverapi-history-readout")).toBeAttached();
   }
 });
 

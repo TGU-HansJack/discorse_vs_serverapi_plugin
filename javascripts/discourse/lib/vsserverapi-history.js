@@ -8,16 +8,6 @@ const MIN_SPAN = 6 * HOUR;
 const mountedCharts = new Map();
 let removalObserver;
 
-function escapeText(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[character]));
-}
-
-function formatNumber(value) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
 export function normalizeHistory(records, now = Date.now(), intervalMinutes = SAMPLE_MINUTES) {
   const interval = intervalMinutes * 60;
   const points = HISTORY_HOURS * 60 / intervalMinutes;
@@ -101,40 +91,35 @@ function chartButton(action, label, icon) {
 
 export function historyMarkup() {
   return `<section class="vsserverapi-history" aria-label="最近 7 天在线玩家">
-    <div class="vsserverapi-history-header"><h4>在线玩家 · 最近 7 天</h4><div class="vsserverapi-history-controls">
+    <div class="vsserverapi-history-header"><h4>在线玩家</h4><div class="vsserverapi-history-controls">
       ${chartButton("out", "缩小时间轴", "minus")}
       ${chartButton("in", "放大时间轴", "plus")}
       ${chartButton("reset", "重置为最近 7 天", "rotate-left")}
     </div></div>
-    <div class="vsserverapi-history-key"><span class="vsserverapi-history-key-line"></span><span>最高值 <strong data-history-peak>—</strong></span></div>
     <div class="vsserverapi-history-status" role="status">正在加载玩家历史…</div>
-    <div class="vsserverapi-history-plot" role="img" aria-label="每 5 分钟在线玩家人数折线图" hidden></div>
+    <div class="vsserverapi-history-plot" role="img" aria-label="每 5 分钟在线玩家人数折线图" hidden>
+      <div class="vsserverapi-history-readout" role="status" aria-live="polite" hidden></div>
+    </div>
     <div class="vsserverapi-history-scroll" tabindex="0" role="region" aria-label="横向滚动玩家历史时间轴" hidden><div></div></div>
-    <output class="vsserverapi-history-value" aria-live="polite"></output>
-    <div class="vsserverapi-history-best" aria-label="每天平均在线人数最高的连续五小时" hidden></div>
   </section>`;
 }
 
 function drawHistory(section, data, intervalSeconds) {
   const host = section.querySelector(".vsserverapi-history-plot");
   const scroll = section.querySelector(".vsserverapi-history-scroll");
-  const readout = section.querySelector("output");
+  const readout = section.querySelector(".vsserverapi-history-readout");
   const status = section.querySelector("[role=status]");
   const buttons = Object.fromEntries([...section.querySelectorAll("[data-history-action]")].map((button) => [button.dataset.historyAction, button]));
   const min = data[0][0] - intervalSeconds / 2;
   const max = data[0][data[0].length - 1] + intervalSeconds / 2;
   const total = max - min;
   const peak = Math.max(...data[1].filter((value) => value !== null));
-  const peakSeries = data[0].map(() => peak);
   const bestWindows = calculateDailyBestWindows(data[0], data[1], intervalSeconds);
-  const peakLabel = section.querySelector("[data-history-peak]");
   const step = Math.max(1, Math.ceil(peak / 5));
   const ceiling = Math.max(5, Math.ceil(peak / step) * step);
   const formatDate = new Intl.DateTimeFormat(undefined, { month: "2-digit", day: "2-digit" });
   const formatTime = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
   const formatFull = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" });
-  const formatDay = new Intl.DateTimeFormat(undefined, { month: "2-digit", day: "2-digit" });
-  const formatHour = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
   let range = { min, max };
   let chart;
   let destroyed = false;
@@ -142,14 +127,6 @@ function drawHistory(section, data, intervalSeconds) {
   let wheelFrame;
   let pendingWheel = 0;
   const color = (name, fallback = "") => getComputedStyle(section).getPropertyValue(name).trim() || fallback;
-
-  function renderBestWindows() {
-    const best = section.querySelector(".vsserverapi-history-best");
-    best.hidden = false;
-    best.innerHTML = `<h5>每日最佳 5 小时</h5><ol>${bestWindows.length ? bestWindows.map((window) =>
-      `<li><span class="vsserverapi-history-best-day">${escapeText(formatDay.format(window.start * 1000))}</span><span>${escapeText(formatHour.format(window.start * 1000))}–${escapeText(formatHour.format(window.end * 1000))}</span><strong>平均 ${formatNumber(window.average)} 人</strong></li>`
-    ).join("") : "<li class=\"vsserverapi-history-best-empty\">暂无连续 5 小时完整数据</li>"}</ol>`;
-  }
 
   function syncControls() {
     const span = range.max - range.min;
@@ -173,8 +150,7 @@ function drawHistory(section, data, intervalSeconds) {
 
   status.hidden = true;
   host.hidden = scroll.hidden = false;
-  peakLabel.textContent = `${formatNumber(peak)} 人`;
-  readout.textContent = `峰值 ${peak} 人`;
+  readout.hidden = true;
   chart = new uPlot({
     width: Math.max(1, Math.floor(host.clientWidth)),
     height: 248,
@@ -184,8 +160,7 @@ function drawHistory(section, data, intervalSeconds) {
     scales: { x: { min, max }, y: { range: () => [0, ceiling] } },
     series: [
       {},
-      { label: "在线玩家", stroke: () => color("--tertiary", "#008c99"), width: 2.5, spanGaps: false, points: { show: false } },
-      { label: "最高值", stroke: () => color("--danger", "#d64545"), width: 1.5, dash: [6, 5], points: { show: false } }
+      { label: "在线玩家", stroke: () => color("--tertiary", "#008c99"), width: 2.5, spanGaps: false, points: { show: false } }
     ],
     axes: [
       { label: "时间", size: 54, labelSize: 22, space: 100, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false },
@@ -194,6 +169,21 @@ function drawHistory(section, data, intervalSeconds) {
         splits: () => Array.from({ length: Math.floor(ceiling / step) + 1 }, (_, i) => i * step) }
     ],
     hooks: {
+      drawClear: [(u) => {
+        if (!bestWindows.length) return;
+        const { ctx, bbox } = u;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(bbox.left, bbox.top, bbox.width, bbox.height);
+        ctx.clip();
+        ctx.fillStyle = color("--success-low", "rgba(36, 130, 63, .16)");
+        for (const window of bestWindows) {
+          const left = Math.max(bbox.left, u.valToPos(window.start, "x"));
+          const right = Math.min(bbox.left + bbox.width, u.valToPos(window.end, "x"));
+          if (right > left) ctx.fillRect(left, bbox.top, right - left, bbox.height);
+        }
+        ctx.restore();
+      }],
       setScale: [(u, key) => {
         if (key === "x") {
           range = { min: u.scales.x.min, max: u.scales.x.max };
@@ -210,12 +200,15 @@ function drawHistory(section, data, intervalSeconds) {
       }],
       setCursor: [(u) => {
         const index = u.cursor.idx;
-        readout.textContent = index == null ? `峰值 ${peak} 人` :
-          `${formatFull.format(data[0][index] * 1000)} · ${data[1][index] === null ? "无记录" : `${data[1][index]} 人`}`;
+        if (index == null) {
+          readout.hidden = true;
+          return;
+        }
+        readout.textContent = `${formatFull.format(data[0][index] * 1000)} · ${data[1][index] === null ? "无记录" : `${data[1][index]} 人`}`;
+        readout.hidden = false;
       }]
     }
-  }, [data[0], data[1], peakSeries], host);
-  renderBestWindows();
+  }, [data[0], data[1]], host);
   syncControls();
 
   const events = new AbortController();
