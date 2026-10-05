@@ -114,7 +114,16 @@ function drawHistory(section, data, intervalSeconds) {
   const max = data[0][data[0].length - 1] + intervalSeconds / 2;
   const total = max - min;
   const peak = Math.max(...data[1].filter((value) => value !== null));
+  const peakSeries = data[0].map(() => peak);
   const bestWindows = calculateDailyBestWindows(data[0], data[1], intervalSeconds);
+  const gapSegments = [];
+  for (let start = 1; start < data[1].length - 1; start++) {
+    if (data[1][start] !== null) continue;
+    let end = start;
+    while (end + 1 < data[1].length && data[1][end + 1] === null) end++;
+    if (Number.isFinite(data[1][start - 1]) && Number.isFinite(data[1][end + 1])) gapSegments.push({ start: start - 1, end: end + 1 });
+    start = end;
+  }
   const step = Math.max(1, Math.ceil(peak / 5));
   const ceiling = Math.max(5, Math.ceil(peak / step) * step);
   const formatDate = new Intl.DateTimeFormat(undefined, { month: "2-digit", day: "2-digit" });
@@ -160,7 +169,8 @@ function drawHistory(section, data, intervalSeconds) {
     scales: { x: { min, max }, y: { range: () => [0, ceiling] } },
     series: [
       {},
-      { label: "在线玩家", stroke: () => color("--tertiary", "#008c99"), width: 2.5, spanGaps: false, points: { show: false } }
+      { label: "在线玩家", stroke: () => color("--tertiary", "#008c99"), width: 2.5, spanGaps: false, points: { show: false } },
+      { label: "最大值", stroke: () => color("--danger", "#d64545"), width: 1.5, dash: [6, 5], points: { show: false } }
     ],
     axes: [
       { label: "时间", size: 54, labelSize: 22, space: 100, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false },
@@ -181,6 +191,24 @@ function drawHistory(section, data, intervalSeconds) {
           const left = Math.max(bbox.left, u.valToPos(window.start, "x"));
           const right = Math.min(bbox.left + bbox.width, u.valToPos(window.end, "x"));
           if (right > left) ctx.fillRect(left, bbox.top, right - left, bbox.height);
+        }
+        ctx.restore();
+      }],
+      draw: [(u) => {
+        if (!gapSegments.length) return;
+        const { ctx, bbox } = u;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(bbox.left, bbox.top, bbox.width, bbox.height);
+        ctx.clip();
+        ctx.strokeStyle = color("--tertiary", "#008c99");
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 5]);
+        for (const segment of gapSegments) {
+          ctx.beginPath();
+          ctx.moveTo(u.valToPos(data[0][segment.start], "x"), u.valToPos(data[1][segment.start], "y"));
+          ctx.lineTo(u.valToPos(data[0][segment.end], "x"), u.valToPos(data[1][segment.end], "y"));
+          ctx.stroke();
         }
         ctx.restore();
       }],
@@ -208,7 +236,7 @@ function drawHistory(section, data, intervalSeconds) {
         readout.hidden = false;
       }]
     }
-  }, [data[0], data[1]], host);
+  }, [data[0], data[1], peakSeries], host);
   syncControls();
 
   const events = new AbortController();

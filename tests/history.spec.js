@@ -63,6 +63,14 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
     }
     return colored;
   })).toBeGreaterThan(400);
+  expect(await chart.locator("canvas").evaluate((canvas) => {
+    const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    let red = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] > pixels[i + 1] + 30 && pixels[i] > pixels[i + 2] + 30) red++;
+    }
+    return red;
+  })).toBeGreaterThan(20);
   const hoverArea = await chart.locator(".u-over").boundingBox();
   await page.mouse.move(hoverArea.x + hoverArea.width / 2, hoverArea.y + hoverArea.height / 2);
   await expect(chart.locator(".vsserverapi-history-readout")).toBeVisible();
