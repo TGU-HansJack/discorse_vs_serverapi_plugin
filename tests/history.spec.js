@@ -82,6 +82,13 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   });
   expect(hoverAlignment.centerDelta).toBeLessThan(1);
   expect(hoverAlignment.above).toBe(true);
+  for (const x of [hoverArea.x + 1, hoverArea.x + hoverArea.width - 1]) {
+    await page.mouse.move(x, hoverArea.y + hoverArea.height / 2);
+    await expect.poll(() => chart.locator(".vsserverapi-history-readout").evaluate((readout) => ({
+      whiteSpace: getComputedStyle(readout).whiteSpace,
+      singleLine: readout.scrollHeight <= readout.clientHeight + 1,
+    }))).toEqual({ whiteSpace: "nowrap", singleLine: true });
+  }
   await page.getByRole("button", { name: "收起图表和模组列表" }).click();
   await expect(chart).toBeHidden();
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
