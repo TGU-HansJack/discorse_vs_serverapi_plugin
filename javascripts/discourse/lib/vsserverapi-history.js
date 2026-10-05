@@ -45,6 +45,14 @@ export function calculateDailyBestWindows(times, values, intervalSeconds = SAMPL
       const first = times[start];
       const last = times[start + windowSize - 1];
       if (!Number.isFinite(first) || last - first !== (windowSize - 1) * intervalSeconds) continue;
+      let contiguous = true;
+      for (let i = start + 1; i < start + windowSize; i++) {
+        if (times[i] - times[i - 1] !== intervalSeconds) {
+          contiguous = false;
+          break;
+        }
+      }
+      if (!contiguous) continue;
       const day = localDayKey(first);
       let total = 0;
       let sampleCount = 0;
@@ -202,9 +210,10 @@ function drawHistory(section, data, intervalSeconds) {
         ctx.rect(bbox.left, bbox.top, bbox.width, bbox.height);
         ctx.clip();
         ctx.fillStyle = color("--success-low", "rgba(36, 130, 63, .16)");
+        // drawClear paints the full canvas, so use uPlot's canvas-space coordinates.
         for (const window of bestWindows) {
-          const left = Math.max(bbox.left, u.valToPos(window.start, "x"));
-          const right = Math.min(bbox.left + bbox.width, u.valToPos(window.end, "x"));
+          const left = Math.max(bbox.left, u.valToPos(window.start, "x", true));
+          const right = Math.min(bbox.left + bbox.width, u.valToPos(window.end, "x", true));
           if (right > left) ctx.fillRect(left, bbox.top, right - left, bbox.height);
         }
         ctx.restore();

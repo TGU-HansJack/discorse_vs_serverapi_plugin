@@ -39,6 +39,40 @@ test("normalizes 2016 five-minute slots, preserving gaps and zeros", async ({ pa
       end: new Date(2026, 9, 2, 2, 0, 0).getTime() / 1000, average: 20 }] });
 });
 
+test("selects three-to-five-hour windows and assigns cross-midnight windows by local start date", async ({ browser }) => {
+  const context = await browser.newContext({ timezoneId: "Asia/Shanghai" });
+  const page = await context.newPage();
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { calculateDailyBestWindows } = await import("/javascripts/discourse/lib/vsserverapi-history.js");
+    const start = Date.parse("2026-10-01T15:00:00Z") / 1000;
+    const exactThreeTimes = Array.from({ length: 36 }, (_, i) => start + i * 300);
+    const exactThreeValues = exactThreeTimes.map(() => 20);
+    const fiveHourTimes = Array.from({ length: 73 }, (_, i) => start + i * 300);
+    const fiveHourValues = fiveHourTimes.map(() => 20);
+    const irregularTimes = Array.from({ length: 36 }, (_, i) => start + (i === 18 ? 19 : i) * 300);
+    const irregularValues = irregularTimes.map(() => 20);
+    const summarize = (windows) => windows.map(({ day, start: windowStart, end, average }) => ({
+      day, start: windowStart, end, duration: end - windowStart, average,
+    }));
+    return {
+      exactThree: summarize(calculateDailyBestWindows(exactThreeTimes, exactThreeValues)),
+      fiveHourCrossMidnight: summarize(calculateDailyBestWindows(fiveHourTimes, fiveHourValues)),
+      irregular: calculateDailyBestWindows(irregularTimes, irregularValues),
+    };
+  });
+  const start = Date.parse("2026-10-01T15:00:00Z") / 1000;
+  expect(result).toEqual({
+    exactThree: [{ day: "2026-10-01", start, end: start + 3 * 3600, duration: 3 * 3600, average: 20 }],
+    fiveHourCrossMidnight: [
+      { day: "2026-10-01", start, end: start + 5 * 3600, duration: 5 * 3600, average: 20 },
+      { day: "2026-10-02", start: start + 3600, end: start + 6 * 3600, duration: 5 * 3600, average: 20 },
+    ],
+    irregular: [],
+  });
+  await context.close();
+});
+
 test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod toggle", async ({ page }) => {
   const errors = [];
   const historyRequests = [];
@@ -81,6 +115,25 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
     }
     return red;
   })).toBeGreaterThan(20);
+  const greenBands = () => chart.locator("canvas").evaluate((canvas) => {
+    const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    const columns = [];
+    for (let x = 0; x < canvas.width; x++) {
+      let count = 0;
+      for (let y = 0; y < canvas.height; y++) {
+        const offset = (y * canvas.width + x) * 4;
+        if (pixels[offset] === 225 && pixels[offset + 1] === 242 && pixels[offset + 2] === 231 && pixels[offset + 3] === 255) count++;
+      }
+      if (count > 10) columns.push(x);
+    }
+    return columns.reduce((groups, x) => {
+      if (!groups.length || x > groups.at(-1).at(-1) + 1) groups.push([x]);
+      else groups.at(-1).push(x);
+      return groups;
+    }, []).map((group) => [group[0], group.at(-1)]);
+  });
+  const initialGreenBands = await greenBands();
+  expect(initialGreenBands.length).toBeGreaterThan(0);
   const hoverArea = await chart.locator(".u-over").boundingBox();
   await page.mouse.move(hoverArea.x + hoverArea.width / 2, hoverArea.y + hoverArea.height / 2);
   await expect(chart.locator(".vsserverapi-history-readout")).toBeVisible();
@@ -104,6 +157,14 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await zoom.click();
   await expect(reset).toBeEnabled();
+  const zoomedGreenBands = await greenBands();
+  const plotBounds = await chart.locator(".u-over").evaluate((element) => ({ left: element.offsetLeft, width: element.clientWidth }));
+  const plotCenter = plotBounds.left + plotBounds.width / 2;
+  const transformErrors = initialGreenBands.flatMap(([left, right]) => {
+    const expected = plotCenter + ((left + right) / 2 - plotCenter) * 2;
+    return zoomedGreenBands.map(([nextLeft, nextRight]) => Math.abs((nextLeft + nextRight) / 2 - expected));
+  });
+  expect(Math.min(...transformErrors)).toBeLessThan(4);
   expect(await scroll.evaluate((el) => el.scrollWidth / el.clientWidth)).toBeCloseTo(2, 1);
   await scroll.focus();
   await page.keyboard.press("End");
