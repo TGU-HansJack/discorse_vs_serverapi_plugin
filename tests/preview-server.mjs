@@ -10,11 +10,21 @@ const css = compile(fileURLToPath(new URL("common/common.scss", root)), {
 }).css;
 
 function history() {
-  const end = Math.floor(Date.now() / 3600000) * 3600000;
+  const interval = 5 * 60000;
+  const end = Math.floor(Date.now() / interval) * interval;
+  return Array.from({ length: 2016 }, (_, i) => ({
+    timestampUtc: new Date(end - (2015 - i) * interval).toISOString(),
+    onlinePlayers: Math.max(0, Math.round(15 + 14 * Math.sin(i / 84))),
+  })).filter((_, i) => i < 540 || i > 551);
+}
+
+function hourlyHistory() {
+  const interval = 3600000;
+  const end = Math.floor(Date.now() / interval) * interval;
   return Array.from({ length: 168 }, (_, i) => ({
-    timestampUtc: new Date(end - (167 - i) * 3600000).toISOString(),
+    timestampUtc: new Date(end - (167 - i) * interval).toISOString(),
     onlinePlayers: Math.max(0, Math.round(15 + 14 * Math.sin(i / 7))),
-  })).filter((_, i) => i < 45 || i > 50);
+  }));
 }
 
 const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VS Server API preview</title>
@@ -56,10 +66,15 @@ createServer(async (request, response) => {
         body = JSON.stringify(history());
       } else {
         const data = { profileId: "hidden", serverName: "Vintage Story 测试服务器", version: "1.22.7", isRunning: true, onlinePlayers: 12, uptimeSeconds: 3600,
-          mods: [{ name: "Carry On", url: "https://mods.vintagestory.at/carryon" }], playerCountHistoryHours: 168 };
-        if (mode === "normal") data.hourlyPlayerCounts = history();
-        if (mode === "empty") data.hourlyPlayerCounts = [];
-        if (mode === "zero") data.hourlyPlayerCounts = history().slice(-1).map((row) => ({ ...row, onlinePlayers: 0 }));
+          mods: [{ name: "Carry On", url: "https://mods.vintagestory.at/carryon" }], playerCountIntervalMinutes: 5, playerCountHistoryHours: 168, playerCountHistoryPoints: 2016 };
+        if (mode === "normal") data.playerCountHistory = history();
+        if (mode === "legacy") {
+          data.hourlyPlayerCounts = hourlyHistory();
+          delete data.playerCountIntervalMinutes;
+          delete data.playerCountHistoryPoints;
+        }
+        if (mode === "empty") data.playerCountHistory = [];
+        if (mode === "zero") data.playerCountHistory = history().slice(-1).map((row) => ({ ...row, onlinePlayers: 0 }));
         body = JSON.stringify(data);
       }
     } else if (/^\/javascripts\/[a-zA-Z0-9/.-]+$/.test(url.pathname) && !url.pathname.includes("..")) {

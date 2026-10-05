@@ -1,24 +1,32 @@
 import { test, expect } from "@playwright/test";
 
-test("normalizes 168 hours, preserving gaps and zeros and rejecting invalid records", async ({ page }) => {
+test("normalizes 2016 five-minute slots, preserving gaps and zeros", async ({ page }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
-    const { normalizeHistory, historyUrl } = await import("/javascripts/discourse/lib/vsserverapi-history.js");
+    const { normalizeHistory, historyUrl, calculateDailyBestWindows } = await import("/javascripts/discourse/lib/vsserverapi-history.js");
     const now = Date.parse("2026-10-05T06:30:00Z");
     const [times, values] = normalizeHistory([
-      { timestampUtc: "2026-10-05T14:00:00+08:00", onlinePlayers: 0 },
-      { timestampUtc: "2026-10-05T04:00:00Z", onlinePlayers: 3 },
-      { timestampUtc: "2026-10-05T04:00:00Z", onlinePlayers: 5 },
+      { timestampUtc: "2026-10-05T14:30:00+08:00", onlinePlayers: 0 },
+      { timestampUtc: "2026-10-05T06:20:00Z", onlinePlayers: 3 },
+      { timestampUtc: "2026-10-05T06:20:00Z", onlinePlayers: 5 },
       { timestampUtc: "2026-09-01T04:00:00Z", onlinePlayers: 99 },
       { timestampUtc: "2026-10-05T07:00:00Z", onlinePlayers: 99 },
-      { timestampUtc: "2026-10-05T03:00:00Z", onlinePlayers: null },
-      { timestampUtc: "2026-10-05T02:00:00Z", onlinePlayers: -1 },
+      { timestampUtc: "2026-10-05T06:15:00Z", onlinePlayers: null },
+      { timestampUtc: "2026-10-05T06:10:00Z", onlinePlayers: -1 },
+      { timestampUtc: "2026-10-05T06:21:00Z", onlinePlayers: 8 },
       { timestampUtc: "invalid", onlinePlayers: 9 }, null,
     ], now);
+    const dayStart = Date.parse("2026-10-01T00:00:00Z") / 1000;
+    const dailyTimes = Array.from({ length: 70 }, (_, i) => dayStart + i * 300);
+    const dailyValues = dailyTimes.map((_, i) => i >= 5 && i < 65 ? 9 : 1);
     return { count: times.length, tail: values.slice(-5), valid: values.filter((v) => v !== null),
-      url: historyUrl("https://example.com/proxy/api/server/?token=sample#hash") };
+      url: historyUrl("https://example.com/proxy/api/server/?token=sample#hash"),
+      best: calculateDailyBestWindows(dailyTimes, dailyValues).map(({ start, end, average }) => ({ start, end, average })),
+      gap: calculateDailyBestWindows(dailyTimes, dailyValues.map((v, i) => i === 35 ? null : v)).length };
   });
-  expect(result).toEqual({ count: 168, tail: [null, null, 5, null, 0], valid: [5, 0], url: "https://example.com/proxy/api/players/history?token=sample" });
+  const dayStart = Date.parse("2026-10-01T00:00:00Z") / 1000;
+  expect(result).toEqual({ count: 2016, tail: [null, null, 5, null, 0], valid: [5, 0], url: "https://example.com/proxy/api/players/history?token=sample",
+    best: [{ start: dayStart + 5 * 300, end: dayStart + 65 * 300, average: 9 }], gap: 0 });
 });
 
 test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod toggle", async ({ page }) => {
@@ -31,7 +39,7 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   const scroll = chart.locator(".vsserverapi-history-scroll");
   const zoom = page.getByRole("button", { name: "放大时间轴" });
   const reset = page.getByRole("button", { name: "重置为最近 7 天" });
-  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/hourlyPlayerCounts|profileId|playerCountHistoryHours/);
+  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/hourlyPlayerCounts|profileId|playerCountHistory|playerCountIntervalMinutes/);
   await expect(chart).toBeHidden();
   await expect(page.locator(".vsserverapi-mods")).toBeHidden();
   expect(await page.locator(".vsserverapi-history").evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
@@ -40,6 +48,10 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   await expect(page.locator(".vsserverapi-mods")).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
   await expect(chart.locator(".u-axis")).toHaveCount(2);
+  await expect(chart.locator(".vsserverapi-history-key strong")).toHaveText(/人/);
+  await expect(chart.locator(".vsserverapi-history-best h5")).toHaveText("每日最佳 5 小时");
+  await expect(chart.locator(".vsserverapi-history-best li")).not.toHaveCount(0);
+  await page.screenshot({ path: "test-results/history-desktop-expanded.png", fullPage: true });
   expect(await chart.locator("canvas").evaluate((canvas) => {
     const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
     return pixels.filter((_, i) => i % 4 === 3 && pixels[i] > 0).length;
@@ -89,8 +101,8 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   expect(historyRequests).toEqual([]);
 });
 
-test("fallback, empty, failed and single zero histories do not break the card", async ({ page }) => {
-  for (const mode of ["fallback", "empty", "error", "zero"]) {
+test("fallback, legacy, empty, failed and single zero histories do not break the card", async ({ page }) => {
+  for (const mode of ["fallback", "legacy", "empty", "error", "zero"]) {
     await page.goto(`/?mode=${mode}`);
     await expect(page.locator(".vsserverapi-title-row h3")).toContainText("Vintage Story");
     await expect(page.locator(".vsserverapi-history")).toBeHidden();

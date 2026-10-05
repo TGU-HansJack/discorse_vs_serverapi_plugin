@@ -46,12 +46,23 @@
 .vsserverapi-history-header h4 { margin: 0; font-size: .95rem; line-height: 1.4; }
 .vsserverapi-history-controls { display: flex; margin-left: auto; flex: 0 0 auto; }
 .vsserverapi-history-controls .btn { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; }
+.vsserverapi-history-key { display: flex; align-items: center; gap: .35rem; margin-top: .2rem; color: var(--primary-medium); font-size: .78rem; }
+.vsserverapi-history-key-line { width: 1.5rem; border-top: 2px dashed var(--danger, #d64545); }
+.vsserverapi-history-key strong { color: var(--danger, #d64545); font-weight: 600; }
 .vsserverapi-history-plot { width: 100%; min-width: 0; height: 248px; overflow: hidden; }
 .vsserverapi-history .u-select { background: var(--tertiary-low); opacity: .6; }
 .vsserverapi-history-scroll { overflow-x: scroll; overflow-y: hidden; height: 24px; scrollbar-width: auto; scrollbar-color: var(--primary-medium) var(--primary-very-low); }
 .vsserverapi-history-scroll > div { height: 1px; }
 .vsserverapi-history-scroll:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 2px; }
 .vsserverapi-history-value { display: block; min-height: 1.5em; margin-top: .35rem; font-size: .8rem; color: var(--primary-medium); overflow-wrap: anywhere; }
+.vsserverapi-history-best { margin-top: .3rem; padding-top: .55rem; border-top: 1px solid var(--primary-low); }
+.vsserverapi-history-best h5 { margin: 0 0 .35rem; color: var(--primary); font-size: .82rem; }
+.vsserverapi-history-best ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .25rem .75rem; margin: 0; padding-left: 1.3rem; color: var(--primary-medium); font-size: .78rem; }
+.vsserverapi-history-best li { padding-left: .1rem; }
+.vsserverapi-history-best li > span { margin-right: .4rem; }
+.vsserverapi-history-best-day { color: var(--primary); font-weight: 600; }
+.vsserverapi-history-best strong { color: var(--tertiary); font-weight: 600; }
+.vsserverapi-history-best-empty { list-style: none; margin-left: -1.3rem; }
 .vsserverapi-history-status { padding: 1rem 0; color: var(--primary-medium); }
 .vsserverapi-history [hidden] { display: none !important; }
 

@@ -77,7 +77,7 @@ function resolveAssetUrl(value, apiUrl) {
 }
 
 function renderInfo(data) {
-  const known = new Set(DISPLAY_FIELDS.map(([key]) => key).concat(["profileId", "serverName", "description", "coverUrl", "mods", "hourlyPlayerCounts", "playerCountHistoryHours"]));
+  const known = new Set(DISPLAY_FIELDS.map(([key]) => key).concat(["profileId", "serverName", "description", "coverUrl", "mods", "hourlyPlayerCounts", "playerCountHistory", "playerCountIntervalMinutes", "playerCountHistoryHours", "playerCountHistoryPoints"]));
   const rows = [];
   for (const [key, label] of DISPLAY_FIELDS) {
     if (!(key in data)) continue;
