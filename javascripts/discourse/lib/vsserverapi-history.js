@@ -116,14 +116,6 @@ function drawHistory(section, data, intervalSeconds) {
   const peak = Math.max(...data[1].filter((value) => value !== null));
   const peakSeries = data[0].map(() => peak);
   const bestWindows = calculateDailyBestWindows(data[0], data[1], intervalSeconds);
-  const gapSegments = [];
-  for (let start = 1; start < data[1].length - 1; start++) {
-    if (data[1][start] !== null) continue;
-    let end = start;
-    while (end + 1 < data[1].length && data[1][end + 1] === null) end++;
-    if (Number.isFinite(data[1][start - 1]) && Number.isFinite(data[1][end + 1])) gapSegments.push({ start: start - 1, end: end + 1 });
-    start = end;
-  }
   const step = Math.max(1, Math.ceil(peak / 5));
   const ceiling = Math.max(5, Math.ceil(peak / step) * step);
   const formatDate = new Intl.DateTimeFormat(undefined, { month: "2-digit", day: "2-digit" });
@@ -136,6 +128,11 @@ function drawHistory(section, data, intervalSeconds) {
   let wheelFrame;
   let pendingWheel = 0;
   const color = (name, fallback = "") => getComputedStyle(section).getPropertyValue(name).trim() || fallback;
+  const snapCursor = (u, left, top) => {
+    if (left < 0) return [left, top];
+    const index = u.posToIdx(left);
+    return index == null ? [left, top] : [u.valToPos(data[0][index], "x"), top];
+  };
 
   function syncControls() {
     const span = range.max - range.min;
@@ -163,9 +160,9 @@ function drawHistory(section, data, intervalSeconds) {
   chart = new uPlot({
     width: Math.max(1, Math.floor(host.clientWidth)),
     height: 248,
-    padding: [12, 16, 0, 0],
+    padding: [28, 16, 0, 0],
     legend: { show: false },
-    cursor: { drag: { x: true, y: false, setScale: false }, y: false },
+    cursor: { drag: { x: true, y: false, setScale: false }, move: snapCursor, y: false },
     scales: { x: { min, max }, y: { range: () => [0, ceiling] } },
     series: [
       {},
@@ -194,24 +191,6 @@ function drawHistory(section, data, intervalSeconds) {
         }
         ctx.restore();
       }],
-      draw: [(u) => {
-        if (!gapSegments.length) return;
-        const { ctx, bbox } = u;
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(bbox.left, bbox.top, bbox.width, bbox.height);
-        ctx.clip();
-        ctx.strokeStyle = color("--tertiary", "#008c99");
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([6, 5]);
-        for (const segment of gapSegments) {
-          ctx.beginPath();
-          ctx.moveTo(u.valToPos(data[0][segment.start], "x"), u.valToPos(data[1][segment.start], "y"));
-          ctx.lineTo(u.valToPos(data[0][segment.end], "x"), u.valToPos(data[1][segment.end], "y"));
-          ctx.stroke();
-        }
-        ctx.restore();
-      }],
       setScale: [(u, key) => {
         if (key === "x") {
           range = { min: u.scales.x.min, max: u.scales.x.max };
@@ -233,6 +212,7 @@ function drawHistory(section, data, intervalSeconds) {
           return;
         }
         readout.textContent = `${formatFull.format(data[0][index] * 1000)} · ${data[1][index] === null ? "无记录" : `${data[1][index]} 人`}`;
+        readout.style.left = `${u.over.offsetLeft + u.cursor.left}px`;
         readout.hidden = false;
       }]
     }

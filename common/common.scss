@@ -47,7 +47,7 @@
 .vsserverapi-history-controls { display: flex; margin-left: auto; flex: 0 0 auto; }
 .vsserverapi-history-controls .btn { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; }
 .vsserverapi-history-plot { position: relative; width: 100%; min-width: 0; height: 248px; overflow: hidden; }
-.vsserverapi-history-readout { position: absolute; z-index: 2; top: .35rem; left: .5rem; max-width: calc(100% - 1rem); padding: .15rem .4rem; border-radius: 3px; background: color-mix(in srgb, var(--secondary) 88%, transparent); color: var(--primary); font-size: .78rem; pointer-events: none; overflow-wrap: anywhere; }
+.vsserverapi-history-readout { position: absolute; z-index: 2; top: 0; left: 0; max-width: calc(100% - 1rem); padding: .15rem .4rem; border-radius: 3px; background: color-mix(in srgb, var(--secondary) 88%, transparent); color: var(--primary); font-size: .78rem; pointer-events: none; overflow-wrap: anywhere; transform: translateX(-50%); }
 .vsserverapi-history .u-select { background: var(--tertiary-low); opacity: .6; }
 .vsserverapi-history-scroll { overflow-x: scroll; overflow-y: hidden; height: 24px; scrollbar-width: auto; scrollbar-color: var(--primary-medium) var(--primary-very-low); }
 .vsserverapi-history-scroll > div { height: 1px; }

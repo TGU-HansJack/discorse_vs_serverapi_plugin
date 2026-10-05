@@ -75,6 +75,13 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   await page.mouse.move(hoverArea.x + hoverArea.width / 2, hoverArea.y + hoverArea.height / 2);
   await expect(chart.locator(".vsserverapi-history-readout")).toBeVisible();
   await expect(chart.locator(".vsserverapi-history-readout")).toContainText("人");
+  const hoverAlignment = await chart.evaluate((section) => {
+    const readout = section.querySelector(".vsserverapi-history-readout").getBoundingClientRect();
+    const cursor = section.querySelector(".u-cursor-x").getBoundingClientRect();
+    return { centerDelta: Math.abs(readout.left + readout.width / 2 - (cursor.left + cursor.width / 2)), above: readout.bottom <= cursor.top + 1 };
+  });
+  expect(hoverAlignment.centerDelta).toBeLessThan(1);
+  expect(hoverAlignment.above).toBe(true);
   await page.getByRole("button", { name: "收起图表和模组列表" }).click();
   await expect(chart).toBeHidden();
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
