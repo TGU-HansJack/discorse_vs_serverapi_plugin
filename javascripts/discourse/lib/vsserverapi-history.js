@@ -5,6 +5,8 @@ const HISTORY_HOURS = 168;
 const SAMPLE_MINUTES = 5;
 const SAMPLE_SECONDS = SAMPLE_MINUTES * 60;
 const MAX_MISSING_SAMPLES = 3;
+const MIN_WINDOW_HOURS = 3;
+const MAX_WINDOW_HOURS = 5;
 const MIN_SPAN = 6 * HOUR;
 const mountedCharts = new Map();
 let removalObserver;
@@ -33,34 +35,41 @@ function localDayKey(timestamp) {
 }
 
 export function calculateDailyBestWindows(times, values, intervalSeconds = SAMPLE_SECONDS) {
-  const windowSize = 5 * HOUR / intervalSeconds;
+  const minWindowSize = MIN_WINDOW_HOURS * HOUR / intervalSeconds;
+  const maxWindowSize = MAX_WINDOW_HOURS * HOUR / intervalSeconds;
   const windows = new Map();
-  if (!Array.isArray(times) || !Array.isArray(values) || times.length !== values.length || !Number.isInteger(windowSize)) return [];
-  for (let start = 0; start <= times.length - windowSize; start++) {
-    const first = times[start];
-    const last = times[start + windowSize - 1];
-    if (!Number.isFinite(first) || last - first !== (windowSize - 1) * intervalSeconds) continue;
-    const day = localDayKey(first);
-    if (localDayKey(last) !== day) continue;
-    let total = 0;
-    let sampleCount = 0;
-    let missingRun = 0;
-    let valid = true;
-    for (let i = start; i < start + windowSize; i++) {
-      const value = values[i];
-      if (!Number.isFinite(value) || value < 0) {
-        if (++missingRun > MAX_MISSING_SAMPLES) { valid = false; break; }
-        continue;
+  if (!Array.isArray(times) || !Array.isArray(values) || times.length !== values.length ||
+      !Number.isInteger(minWindowSize) || !Number.isInteger(maxWindowSize)) return [];
+  for (let start = 0; start <= times.length - minWindowSize; start++) {
+    for (let windowSize = minWindowSize; windowSize <= maxWindowSize && start + windowSize <= times.length; windowSize++) {
+      const first = times[start];
+      const last = times[start + windowSize - 1];
+      if (!Number.isFinite(first) || last - first !== (windowSize - 1) * intervalSeconds) continue;
+      const day = localDayKey(first);
+      let total = 0;
+      let sampleCount = 0;
+      let missingRun = 0;
+      let valid = true;
+      for (let i = start; i < start + windowSize; i++) {
+        const value = values[i];
+        if (!Number.isFinite(value) || value < 0) {
+          if (++missingRun > MAX_MISSING_SAMPLES) { valid = false; break; }
+          continue;
+        }
+        missingRun = 0;
+        total += value;
+        sampleCount++;
       }
-      missingRun = 0;
-      total += value;
-      sampleCount++;
-    }
-    if (!valid || !sampleCount) continue;
-    const average = total / sampleCount;
-    const current = windows.get(day);
-    if (!current || average > current.average || (average === current.average && first < current.start)) {
-      windows.set(day, { day, start: first, end: last + intervalSeconds, average });
+      if (!valid || !sampleCount) continue;
+      const average = total / sampleCount;
+      const end = last + intervalSeconds;
+      const duration = end - first;
+      const current = windows.get(day);
+      if (!current || average > current.average ||
+          (average === current.average && (duration > current.end - current.start ||
+            (duration === current.end - current.start && first < current.start)))) {
+        windows.set(day, { day, start: first, end, average });
+      }
     }
   }
   return [...windows.values()].sort((a, b) => a.day.localeCompare(b.day));
