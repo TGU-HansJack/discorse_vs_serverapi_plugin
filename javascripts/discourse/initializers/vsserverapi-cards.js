@@ -45,6 +45,16 @@ function formatValue(value) {
   return String(value);
 }
 
+function formatStartTime(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  return new Intl.DateTimeFormat("sv-SE", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+  }).format(date);
+}
+
 function formatDuration(seconds) {
   const value = Number(seconds);
   if (!Number.isFinite(value) || value < 0) return null;
@@ -73,6 +83,7 @@ function renderInfo(data) {
     if (!(key in data)) continue;
     let value = data[key];
     if (key === "isRunning") value = data[key] ? "运行中" : "已停止";
+    if (key === "startedAtUtc") value = formatStartTime(data[key]) || formatValue(data[key]);
     if (key === "uptimeSeconds") value = formatDuration(data[key]) || formatValue(data[key]);
     rows.push(`<div class="vsserverapi-field"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(formatValue(value))}</dd></div>`);
   }
