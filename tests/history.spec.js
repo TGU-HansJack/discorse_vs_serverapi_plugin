@@ -19,14 +19,18 @@ test("normalizes 2016 five-minute slots, preserving gaps and zeros", async ({ pa
     const dayStart = Date.parse("2026-10-01T00:00:00Z") / 1000;
     const dailyTimes = Array.from({ length: 70 }, (_, i) => dayStart + i * 300);
     const dailyValues = dailyTimes.map((_, i) => i >= 5 && i < 65 ? 9 : 1);
+    const toleratedGap = dailyValues.map((v, i) => i >= 35 && i < 38 ? null : v);
+    const rejectedGap = dailyValues.map((v, i) => i >= 35 && i < 39 ? null : v);
     return { count: times.length, tail: values.slice(-5), valid: values.filter((v) => v !== null),
       url: historyUrl("https://example.com/proxy/api/server/?token=sample#hash"),
       best: calculateDailyBestWindows(dailyTimes, dailyValues).map(({ start, end, average }) => ({ start, end, average })),
-      gap: calculateDailyBestWindows(dailyTimes, dailyValues.map((v, i) => i === 35 ? null : v)).length };
+      toleratedGap: calculateDailyBestWindows(dailyTimes, toleratedGap).map(({ start, end, average }) => ({ start, end, average })),
+      rejectedGap: calculateDailyBestWindows(dailyTimes, rejectedGap).length };
   });
   const dayStart = Date.parse("2026-10-01T00:00:00Z") / 1000;
   expect(result).toEqual({ count: 2016, tail: [null, null, 5, null, 0], valid: [5, 0], url: "https://example.com/proxy/api/players/history?token=sample",
-    best: [{ start: dayStart + 5 * 300, end: dayStart + 65 * 300, average: 9 }], gap: 0 });
+    best: [{ start: dayStart + 5 * 300, end: dayStart + 65 * 300, average: 9 }],
+    toleratedGap: [{ start: dayStart + 5 * 300, end: dayStart + 65 * 300, average: 9 }], rejectedGap: 0 });
 });
 
 test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod toggle", async ({ page }) => {

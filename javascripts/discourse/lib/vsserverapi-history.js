@@ -4,6 +4,7 @@ const HOUR = 3600;
 const HISTORY_HOURS = 168;
 const SAMPLE_MINUTES = 5;
 const SAMPLE_SECONDS = SAMPLE_MINUTES * 60;
+const MAX_MISSING_SAMPLES = 3;
 const MIN_SPAN = 6 * HOUR;
 const mountedCharts = new Map();
 let removalObserver;
@@ -42,13 +43,21 @@ export function calculateDailyBestWindows(times, values, intervalSeconds = SAMPL
     const day = localDayKey(first);
     if (localDayKey(last) !== day) continue;
     let total = 0;
-    let complete = true;
+    let sampleCount = 0;
+    let missingRun = 0;
+    let valid = true;
     for (let i = start; i < start + windowSize; i++) {
-      if (!Number.isFinite(values[i]) || values[i] < 0 || (i > start && times[i] - times[i - 1] !== intervalSeconds)) { complete = false; break; }
-      total += values[i];
+      const value = values[i];
+      if (!Number.isFinite(value) || value < 0) {
+        if (++missingRun > MAX_MISSING_SAMPLES) { valid = false; break; }
+        continue;
+      }
+      missingRun = 0;
+      total += value;
+      sampleCount++;
     }
-    if (!complete) continue;
-    const average = total / windowSize;
+    if (!valid || !sampleCount) continue;
+    const average = total / sampleCount;
     const current = windows.get(day);
     if (!current || average > current.average || (average === current.average && first < current.start)) {
       windows.set(day, { day, start: first, end: last + intervalSeconds, average });
