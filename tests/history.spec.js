@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("normalizes 2016 five-minute slots, preserving gaps and zeros", async ({ page }) => {
+test("normalizes on-change history and preserves irregular timestamps", async ({ page }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
     const { normalizeHistory, historyUrl, calculateDailyBestWindows } = await import("/javascripts/discourse/lib/vsserverapi-history.js");
@@ -24,7 +24,7 @@ test("normalizes 2016 five-minute slots, preserving gaps and zeros", async ({ pa
     const localEvening = new Date(2026, 9, 1, 23, 0, 0).getTime() / 1000;
     const flexibleTimes = Array.from({ length: 37 }, (_, i) => localEvening + i * 300);
     const flexibleValues = flexibleTimes.map((_, i) => i < 36 ? 20 : 1);
-    return { count: times.length, tail: values.slice(-5), valid: values.filter((v) => v !== null),
+    return { count: times.length, times, values, valid: values.filter((v) => v !== null),
       url: historyUrl("https://example.com/proxy/api/server/?token=sample#hash"),
       best: calculateDailyBestWindows(dailyTimes, dailyValues).map(({ start, end, average }) => ({ start, end, average })),
       toleratedGap: calculateDailyBestWindows(dailyTimes, toleratedGap).map(({ start, end, average }) => ({ start, end, average })),
@@ -32,9 +32,9 @@ test("normalizes 2016 five-minute slots, preserving gaps and zeros", async ({ pa
       flexible: calculateDailyBestWindows(flexibleTimes, flexibleValues).map(({ day, start, end, average }) => ({ day, start, end, average })) };
   });
   const dayStart = Date.parse("2026-10-01T00:00:00Z") / 1000;
-  expect(result).toEqual({ count: 2016, tail: [null, null, 5, null, 0], valid: [5, 0], url: "https://example.com/proxy/api/players/history?token=sample",
+  expect(result).toEqual({ count: 3, times: [Date.parse("2026-10-05T06:20:00Z") / 1000, Date.parse("2026-10-05T06:21:00Z") / 1000, Date.parse("2026-10-05T14:30:00+08:00") / 1000], values: [5, 8, 0], valid: [5, 8, 0], url: "https://example.com/proxy/api/players/history?token=sample",
     best: [{ start: dayStart + 5 * 300, end: dayStart + 65 * 300, average: 9 }],
-    toleratedGap: [{ start: dayStart + 5 * 300, end: dayStart + 65 * 300, average: 9 }], rejectedGap: false,
+    toleratedGap: [], rejectedGap: false,
     flexible: [{ day: "2026-10-01", start: new Date(2026, 9, 1, 23, 0, 0).getTime() / 1000,
       end: new Date(2026, 9, 2, 2, 0, 0).getTime() / 1000, average: 20 }] });
 });
@@ -46,11 +46,11 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
   const result = await page.evaluate(async () => {
     const { calculateDailyBestWindows } = await import("/javascripts/discourse/lib/vsserverapi-history.js");
     const start = Date.parse("2026-10-01T15:00:00Z") / 1000;
-    const exactThreeTimes = Array.from({ length: 36 }, (_, i) => start + i * 300);
+    const exactThreeTimes = Array.from({ length: 37 }, (_, i) => start + i * 300);
     const exactThreeValues = exactThreeTimes.map(() => 20);
-    const fractionalHourTimes = Array.from({ length: 41 }, (_, i) => start + i * 300);
+    const fractionalHourTimes = Array.from({ length: 42 }, (_, i) => start + i * 300);
     const fractionalHourValues = fractionalHourTimes.map(() => 20);
-    const fiveHourTimes = Array.from({ length: 73 }, (_, i) => start + i * 300);
+    const fiveHourTimes = Array.from({ length: 61 }, (_, i) => start + i * 300);
     const fiveHourValues = fiveHourTimes.map(() => 20);
     const emptyTimes = Array.from({ length: 61 }, (_, i) => start + i * 300);
     const emptyValues = emptyTimes.map(() => 0);
@@ -76,7 +76,7 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
     fractionalHour: [{ day: "2026-10-01", start, end: start + 3 * 3600 + 25 * 60, duration: 3 * 3600 + 25 * 60, average: 20 }],
     fiveHourCrossMidnight: [
       { day: "2026-10-01", start, end: start + 5 * 3600, duration: 5 * 3600, average: 20 },
-      { day: "2026-10-02", start: start + 3600, end: start + 6 * 3600, duration: 5 * 3600, average: 20 },
+      { day: "2026-10-02", start: start + 3600, end: start + 5 * 3600, duration: 4 * 3600, average: 20 },
     ],
     empty: [],
     low: [],
@@ -95,7 +95,7 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   const scroll = chart.locator(".vsserverapi-history-scroll");
   const zoom = page.getByRole("button", { name: "放大时间轴" });
   const reset = page.getByRole("button", { name: "重置为最近 7 天" });
-  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/hourlyPlayerCounts|profileId|playerCountHistory|playerCountIntervalMinutes/);
+  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/profileId|playerCountHistory|playerCountHistoryMode|playerCountHistoryHours/);
   await expect(chart).toBeHidden();
   await expect(page.locator(".vsserverapi-mods")).toBeHidden();
   expect(await page.locator(".vsserverapi-history").evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
@@ -209,8 +209,8 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   expect(historyRequests).toEqual([]);
 });
 
-test("fallback, legacy, empty, failed and single zero histories do not break the card", async ({ page }) => {
-  for (const mode of ["fallback", "legacy", "empty", "error", "zero"]) {
+test("fallback, empty, failed and single zero histories do not break the card", async ({ page }) => {
+  for (const mode of ["fallback", "empty", "error", "zero"]) {
     await page.goto(`/?mode=${mode}`);
     await expect(page.locator(".vsserverapi-title-row h3")).toContainText("Vintage Story");
     await expect(page.locator(".vsserverapi-history")).toBeHidden();

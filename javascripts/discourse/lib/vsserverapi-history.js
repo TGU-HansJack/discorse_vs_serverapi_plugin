@@ -2,9 +2,6 @@ import uPlot from "./vendor/uplot";
 
 const HOUR = 3600;
 const HISTORY_HOURS = 168;
-const SAMPLE_MINUTES = 5;
-const SAMPLE_SECONDS = SAMPLE_MINUTES * 60;
-const MAX_MISSING_SAMPLES = 3;
 const MIN_WINDOW_HOURS = 3;
 const MAX_WINDOW_HOURS = 5;
 const MIN_BEST_AVERAGE = 2;
@@ -12,19 +9,17 @@ const MIN_SPAN = 6 * HOUR;
 const mountedCharts = new Map();
 let removalObserver;
 
-export function normalizeHistory(records, now = Date.now(), intervalMinutes = SAMPLE_MINUTES) {
-  const interval = intervalMinutes * 60;
-  const points = HISTORY_HOURS * 60 / intervalMinutes;
-  const last = Math.floor(now / 1000 / interval) * interval;
-  const first = last - (points - 1) * interval;
+export function normalizeHistory(records, now = Date.now(), retentionHours = HISTORY_HOURS) {
+  const last = now / 1000;
+  const first = last - retentionHours * HOUR;
   const samples = new Map();
   for (const record of records) {
     if (typeof record?.timestampUtc !== "string" || !Number.isInteger(record.onlinePlayers) || record.onlinePlayers < 0) continue;
     const time = Date.parse(record.timestampUtc) / 1000;
-    if (Number.isFinite(time) && time % interval === 0 && time >= first && time <= last) samples.set(time, record.onlinePlayers);
+    if (Number.isFinite(time) && time >= first && time <= last) samples.set(time, record.onlinePlayers);
   }
-  const times = Array.from({ length: points }, (_, i) => first + i * interval);
-  return [times, times.map((time) => samples.get(time) ?? null)];
+  const times = [...samples.keys()].sort((a, b) => a - b);
+  return [times, times.map((time) => samples.get(time))];
 }
 
 function localDayKey(timestamp) {
@@ -35,45 +30,30 @@ function localDayKey(timestamp) {
   return `${year}-${month}-${day}`;
 }
 
-export function calculateDailyBestWindows(times, values, intervalSeconds = SAMPLE_SECONDS) {
-  const minWindowSize = MIN_WINDOW_HOURS * HOUR / intervalSeconds;
-  const maxWindowSize = MAX_WINDOW_HOURS * HOUR / intervalSeconds;
+export function calculateDailyBestWindows(times, values) {
   const windows = new Map();
-  if (!Array.isArray(times) || !Array.isArray(values) || times.length !== values.length ||
-      !Number.isInteger(minWindowSize) || !Number.isInteger(maxWindowSize)) return [];
-  for (let start = 0; start <= times.length - minWindowSize; start++) {
-    for (let windowSize = minWindowSize; windowSize <= maxWindowSize && start + windowSize <= times.length; windowSize++) {
+  if (!Array.isArray(times) || !Array.isArray(values) || times.length !== values.length || times.length < 2) return [];
+  for (let start = 0; start < times.length - 1; start++) {
+    for (let endIndex = start + 1; endIndex < times.length; endIndex++) {
       const first = times[start];
-      const last = times[start + windowSize - 1];
-      if (!Number.isFinite(first) || last - first !== (windowSize - 1) * intervalSeconds) continue;
-      let contiguous = true;
-      for (let i = start + 1; i < start + windowSize; i++) {
-        if (times[i] - times[i - 1] !== intervalSeconds) {
-          contiguous = false;
-          break;
-        }
-      }
-      if (!contiguous) continue;
+      const end = times[endIndex];
+      const duration = end - first;
+      if (!Number.isFinite(first) || !Number.isFinite(end)) continue;
+      if (duration < MIN_WINDOW_HOURS * HOUR) continue;
+      if (duration > MAX_WINDOW_HOURS * HOUR) break;
       const day = localDayKey(first);
       let total = 0;
-      let sampleCount = 0;
-      let missingRun = 0;
-      let valid = true;
-      for (let i = start; i < start + windowSize; i++) {
+      let covered = 0;
+      for (let i = start; i < endIndex; i++) {
         const value = values[i];
-        if (!Number.isFinite(value) || value < 0) {
-          if (++missingRun > MAX_MISSING_SAMPLES) { valid = false; break; }
-          continue;
-        }
-        missingRun = 0;
-        total += value;
-        sampleCount++;
+        const span = times[i + 1] - times[i];
+        if (!Number.isFinite(value) || value < 0 || !Number.isFinite(span) || span <= 0) continue;
+        total += value * span;
+        covered += span;
       }
-      if (!valid || !sampleCount) continue;
-      const average = total / sampleCount;
+      if (covered < duration) continue;
+      const average = total / duration;
       if (average < MIN_BEST_AVERAGE) continue;
-      const end = last + intervalSeconds;
-      const duration = end - first;
       const current = windows.get(day);
       if (!current || average > current.average ||
           (average === current.average && (duration > current.end - current.start ||
@@ -125,25 +105,25 @@ export function historyMarkup() {
       ${chartButton("reset", "重置为最近 7 天", "rotate-left")}
     </div></div>
     <div class="vsserverapi-history-status" role="status">正在加载玩家历史…</div>
-    <div class="vsserverapi-history-plot" role="img" aria-label="每 5 分钟在线玩家人数折线图" hidden>
+    <div class="vsserverapi-history-plot" role="img" aria-label="在线玩家人数变化图" hidden>
       <div class="vsserverapi-history-readout" role="status" aria-live="polite" hidden></div>
     </div>
     <div class="vsserverapi-history-scroll" tabindex="0" role="region" aria-label="横向滚动玩家历史时间轴" hidden><div></div></div>
   </section>`;
 }
 
-function drawHistory(section, data, intervalSeconds) {
+function drawHistory(section, data) {
   const host = section.querySelector(".vsserverapi-history-plot");
   const scroll = section.querySelector(".vsserverapi-history-scroll");
   const readout = section.querySelector(".vsserverapi-history-readout");
   const status = section.querySelector("[role=status]");
   const buttons = Object.fromEntries([...section.querySelectorAll("[data-history-action]")].map((button) => [button.dataset.historyAction, button]));
-  const min = data[0][0] - intervalSeconds / 2;
-  const max = data[0][data[0].length - 1] + intervalSeconds / 2;
+  const min = data[0][0];
+  const max = data[0][data[0].length - 1];
   const total = max - min;
   const peak = Math.max(...data[1].filter((value) => value !== null));
   const peakSeries = data[0].map(() => peak);
-  const bestWindows = calculateDailyBestWindows(data[0], data[1], intervalSeconds);
+  const bestWindows = calculateDailyBestWindows(data[0], data[1]);
   const step = Math.max(1, Math.ceil(peak / 5));
   const ceiling = Math.max(5, Math.ceil(peak / step) * step);
   const formatDate = new Intl.DateTimeFormat(undefined, { month: "2-digit", day: "2-digit" });
@@ -317,27 +297,23 @@ export async function loadHistory(section, serverData, apiUrl) {
   const status = section.querySelector("[role=status]");
   try {
     let records = serverData.playerCountHistory;
-    let intervalMinutes = SAMPLE_MINUTES;
-    if (!Array.isArray(records) && Array.isArray(serverData.hourlyPlayerCounts)) {
-      records = serverData.hourlyPlayerCounts;
-      intervalMinutes = 60;
-    }
     if (!Array.isArray(records)) {
       const response = await fetch(historyUrl(apiUrl), {
         headers: { Accept: "application/json" }, credentials: "omit", signal: AbortSignal.timeout(15000)
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      records = await response.json();
+      const payload = await response.json();
+      records = payload?.history;
     }
     if (!Array.isArray(records)) throw new Error("历史数据格式无效");
     if (!section.isConnected) return;
-    const data = normalizeHistory(records, Date.now(), intervalMinutes);
+    const data = normalizeHistory(records, Date.now(), serverData.playerCountHistoryHours || 168);
     if (data[1].every((value) => value === null)) {
       status.textContent = "最近 7 天暂无玩家历史记录";
       return;
     }
-    section.querySelector(".vsserverapi-history-plot").setAttribute("aria-label", `每 ${intervalMinutes} 分钟在线玩家人数折线图`);
-    drawHistory(section, data, intervalMinutes * 60);
+    section.querySelector(".vsserverapi-history-plot").setAttribute("aria-label", "在线玩家人数变化图");
+    drawHistory(section, data);
   } catch (error) {
     status.hidden = false;
     status.textContent = `无法加载玩家历史：${error.message || "请求失败"}`;
