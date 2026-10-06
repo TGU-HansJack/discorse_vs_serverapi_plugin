@@ -56,7 +56,7 @@ createServer(async (request, response) => {
         if (mode === "error") { response.writeHead(503); response.end(); return; }
         body = JSON.stringify({ history: history(), retentionHours: 168 });
       } else {
-        const data = { profileId: "hidden", serverName: "Vintage Story 测试服务器", version: "1.22.7", isRunning: true, onlinePlayers: 12, uptimeSeconds: 3600,
+        const data = { profileId: "hidden", serverName: "Vintage Story 测试服务器", version: "1.22.7", isRunning: true, serverStatus: "running", worldName: "测试世界", address: "127.0.0.1:42420", onlinePlayers: 12, maxPlayers: 64, uptimeSeconds: 3600,
           mods: [{ name: "Carry On", url: "https://mods.vintagestory.at/carryon" }], playerCountHistoryHours: 168, playerCountHistoryMode: "on-change" };
         if (mode === "normal") data.playerCountHistory = history();
         data.playerCountHistoryMode = "on-change";

@@ -5,7 +5,11 @@ const DISPLAY_FIELDS = [
   ["profileName", "配置"],
   ["version", "游戏版本"],
   ["isRunning", "运行状态"],
+  ["serverStatus", "服务器状态"],
+  ["worldName", "世界名称"],
+  ["address", "服务器地址"],
   ["onlinePlayers", "在线玩家"],
+  ["maxPlayers", "最大玩家数"],
   ["startedAtUtc", "启动时间"],
   ["uptimeSeconds", "运行时长"]
 ];
@@ -43,6 +47,18 @@ function formatValue(value) {
   if (typeof value === "boolean") return value ? "是" : "否";
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
+}
+
+function formatServerStatus(value) {
+  const labels = {
+    running: "运行中",
+    starting: "启动中",
+    stopping: "停止中",
+    stopped: "已停止",
+    "shutting-down": "停止中"
+  };
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return labels[normalized] || formatValue(value);
 }
 
 function formatStartTime(value) {
@@ -83,6 +99,7 @@ function renderInfo(data) {
     if (!(key in data)) continue;
     let value = data[key];
     if (key === "isRunning") value = data[key] ? "运行中" : "已停止";
+    if (key === "serverStatus") value = formatServerStatus(data[key]);
     if (key === "startedAtUtc") value = formatStartTime(data[key]) || formatValue(data[key]);
     if (key === "uptimeSeconds") value = formatDuration(data[key]) || formatValue(data[key]);
     rows.push(`<div class="vsserverapi-field"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(formatValue(value))}</dd></div>`);

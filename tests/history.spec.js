@@ -96,6 +96,11 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   const zoom = page.getByRole("button", { name: "放大时间轴" });
   const reset = page.getByRole("button", { name: "重置为最近 7 天" });
   await expect(page.locator(".vsserverapi-fields")).not.toContainText(/profileId|playerCountHistory|playerCountHistoryMode|playerCountHistoryHours/);
+  await expect(page.locator(".vsserverapi-fields")).toContainText("服务器状态");
+  await expect(page.locator(".vsserverapi-fields")).toContainText("世界名称");
+  await expect(page.locator(".vsserverapi-fields")).toContainText("服务器地址");
+  await expect(page.locator(".vsserverapi-fields")).toContainText("最大玩家数");
+  await expect(page.locator(".vsserverapi-fields")).not.toContainText(/serverStatus|worldName|address|maxPlayers/);
   await expect(chart).toBeHidden();
   await expect(page.locator(".vsserverapi-mods")).toBeHidden();
   expect(await page.locator(".vsserverapi-history").evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
