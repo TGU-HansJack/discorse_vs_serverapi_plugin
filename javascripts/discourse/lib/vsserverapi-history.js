@@ -178,9 +178,9 @@ function drawHistory(section, data) {
       { label: "最大值", stroke: () => color("--danger", "#d64545"), width: 1.5, dash: [6, 5], points: { show: false } }
     ],
     axes: [
-      { label: "时间", size: 54, labelSize: 22, space: 100, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false },
+      { label: "时间", size: 54, labelSize: 22, space: 100, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false }, border: { show: true, stroke: () => color("--primary-medium"), width: 1 },
         values: (_u, ticks) => ticks.map((time) => `${formatDate.format(time * 1000)}\n${formatTime.format(time * 1000)}`) },
-      { label: "人数", size: 42, labelSize: 22, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { stroke: () => color("--primary-low") },
+      { label: "人数", size: 42, labelSize: 22, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false },
         splits: () => Array.from({ length: Math.floor(ceiling / step) + 1 }, (_, i) => i * step) }
     ],
     hooks: {
@@ -221,8 +221,12 @@ function drawHistory(section, data) {
           return;
         }
         readout.textContent = `${formatFull.format(data[0][index] * 1000)} · ${data[1][index] === null ? "无记录" : `${data[1][index]} 人`}`;
-        readout.style.left = `${u.over.offsetLeft + u.cursor.left}px`;
         readout.hidden = false;
+        const cursorLeft = u.over.offsetLeft + u.cursor.left;
+        const halfWidth = readout.offsetWidth / 2;
+        const minLeft = halfWidth;
+        const maxLeft = Math.max(minLeft, host.clientWidth - halfWidth);
+        readout.style.left = `${Math.min(maxLeft, Math.max(minLeft, cursorLeft))}px`;
       }]
     }
   }, [data[0], data[1], peakSeries], host);
