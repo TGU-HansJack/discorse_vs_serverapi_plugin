@@ -32,7 +32,16 @@
 .vsserverapi-mods { padding-top: .85rem; }
 .vsserverapi-mods h4 { margin: 0 0 .55rem; color: var(--primary); font-size: .95rem; font-weight: 600; }
 .vsserverapi-mod-list { display: grid; gap: .45rem; }
-.vsserverapi-mod-card { display: grid; grid-template-columns: 56px minmax(0, 1fr) 36px; gap: .65rem; align-items: center; padding: .45rem; border: 1px solid var(--primary-low); border-radius: 6px; background: var(--primary-very-low); }
+.vsserverapi-mod-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 36px;
+  gap: .65rem;
+  align-items: center;
+  padding: .45rem;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary-very-low) 65%, transparent);
+}
 .vsserverapi-mod-cover { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; background: var(--primary-low); }
 .vsserverapi-mod-copy { min-width: 0; }
 .vsserverapi-mod-meta { display: flex; min-width: 0; gap: .45rem; align-items: baseline; color: var(--primary-medium); font-size: .78rem; white-space: nowrap; }
