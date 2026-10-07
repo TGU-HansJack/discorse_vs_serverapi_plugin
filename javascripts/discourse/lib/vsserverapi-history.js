@@ -180,7 +180,7 @@ function drawHistory(section, data) {
     axes: [
       { label: "时间", size: 54, labelSize: 22, space: 100, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false }, border: { show: true, stroke: () => color("--primary-medium"), width: 1 },
         values: (_u, ticks) => ticks.map((time) => `${formatDate.format(time * 1000)}\n${formatTime.format(time * 1000)}`) },
-      { label: "人数", size: 42, labelSize: 22, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false },
+      { label: "人数", size: 42, labelSize: 22, font: "12px sans-serif", stroke: () => color("--primary-medium"), grid: { show: false }, ticks: { show: false },
         splits: () => Array.from({ length: Math.floor(ceiling / step) + 1 }, (_, i) => i * step) }
     ],
     hooks: {
