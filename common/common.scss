@@ -46,12 +46,14 @@
 .vsserverapi-history-header h4 { margin: 0; font-size: .95rem; line-height: 1.4; }
 .vsserverapi-history-controls { display: flex; align-items: center; gap: .2rem; margin-left: auto; flex: 0 0 auto; }
 .vsserverapi-history-controls .btn { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; }
-.vsserverapi-history-zoom { appearance: none; width: 64px; height: 4px; margin: 0 .2rem 0 0; border: 0; border-radius: 999px; background: var(--primary-low); cursor: pointer; }
-.vsserverapi-history-zoom::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; border: 2px solid var(--secondary); border-radius: 50%; background: var(--tertiary); box-shadow: 0 0 0 1px var(--tertiary); }
-.vsserverapi-history-zoom::-moz-range-track { height: 4px; border-radius: 999px; background: var(--primary-low); }
-.vsserverapi-history-zoom::-moz-range-thumb { width: 10px; height: 10px; border: 2px solid var(--secondary); border-radius: 50%; background: var(--tertiary); box-shadow: 0 0 0 1px var(--tertiary); }
-.vsserverapi-history-zoom:disabled { cursor: default; opacity: .35; }
-.vsserverapi-history-zoom:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 3px; }
+.vsserverapi-history-pan { appearance: none; width: 64px; height: 4px; margin: 0 .2rem 0 0; border: 0; border-radius: 999px; background: var(--primary-low); cursor: pointer; }
+.vsserverapi-history-pan::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: var(--primary-low); }
+.vsserverapi-history-pan::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; margin-top: -4px; border: 0; border-radius: 50%; background: var(--primary-medium); }
+.vsserverapi-history-pan::-moz-range-track { height: 4px; border-radius: 999px; background: var(--primary-low); }
+.vsserverapi-history-pan::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--primary-low); }
+.vsserverapi-history-pan::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--primary-medium); }
+.vsserverapi-history-pan:disabled { cursor: default; opacity: .35; }
+.vsserverapi-history-pan:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 3px; }
 .vsserverapi-history-plot { position: relative; width: 100%; min-width: 0; height: 248px; overflow: hidden; }
 .vsserverapi-history-readout { position: absolute; z-index: 2; top: 0; left: 0; padding: .15rem .4rem; border-radius: 3px; background: color-mix(in srgb, var(--secondary) 88%, transparent); color: var(--primary); font-size: .78rem; pointer-events: none; white-space: nowrap; transform: translateX(-50%); }
 .vsserverapi-history .u-select { background: var(--tertiary-low); opacity: .6; }

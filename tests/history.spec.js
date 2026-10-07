@@ -85,14 +85,14 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
   await context.close();
 });
 
-test("renders axes and canvas, zooms, selects, resets and preserves mod toggle", async ({ page }) => {
+test("renders axes and canvas, zooms, pans, selects, resets and preserves mod toggle", async ({ page }) => {
   const errors = [];
   const historyRequests = [];
   page.on("request", (request) => { if (request.url().includes("/players/history")) historyRequests.push(request.url()); });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   const chart = page.locator(".vsserverapi-history");
-  const zoomSlider = page.getByRole("slider", { name: "调整时间轴缩放" });
+  const panSlider = page.getByRole("slider", { name: "横向移动时间轴" });
   const zoom = page.getByRole("button", { name: "放大时间轴" });
   const reset = page.getByRole("button", { name: "重置为最近 7 天" });
   await expect(page.locator(".vsserverapi-fields")).not.toContainText(/profileId|playerCountHistory|playerCountHistoryMode|playerCountHistoryHours/);
@@ -107,7 +107,7 @@ test("renders axes and canvas, zooms, selects, resets and preserves mod toggle",
   await expect(page.locator(".vsserverapi-mods")).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
   await expect(chart.locator(".vsserverapi-history-scroll")).toHaveCount(0);
-  await expect(zoomSlider).toBeEnabled();
+  await expect(panSlider).toBeDisabled();
   await expect(chart.locator(".u-axis")).toHaveCount(2);
   await expect(chart.locator(".vsserverapi-history-key, .vsserverapi-history-value, .vsserverapi-history-best")).toHaveCount(0);
   await expect(chart.locator(".vsserverapi-history-readout")).toBeHidden();
@@ -174,7 +174,7 @@ test("renders axes and canvas, zooms, selects, resets and preserves mod toggle",
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await zoom.click();
   await expect(reset).toBeEnabled();
-  expect(Number(await zoomSlider.inputValue())).toBeGreaterThan(0);
+  await expect(panSlider).toBeEnabled();
   const zoomedGreenBands = await greenBands();
   const plotBounds = await chart.locator(".u-over").evaluate((element) => ({ left: element.offsetLeft, width: element.clientWidth }));
   const plotCenter = plotBounds.left + plotBounds.width / 2;
@@ -183,19 +183,24 @@ test("renders axes and canvas, zooms, selects, resets and preserves mod toggle",
     return zoomedGreenBands.map(([nextLeft, nextRight]) => Math.abs((nextLeft + nextRight) / 2 - expected));
   });
   expect(Math.min(...transformErrors)).toBeLessThan(4);
+  const beforePan = await chart.locator("canvas").evaluate((canvas) => canvas.toDataURL());
+  await panSlider.focus();
+  await page.keyboard.press("End");
+  await expect(panSlider).toHaveValue("100");
+  await expect.poll(() => chart.locator("canvas").evaluate((canvas) => canvas.toDataURL())).not.toBe(beforePan);
   await reset.click();
   await expect(reset).toBeDisabled();
-  await expect(zoomSlider).toHaveValue("0");
+  await expect(panSlider).toBeDisabled();
+  await expect(panSlider).toHaveValue("0");
   const area = await chart.locator(".u-over").boundingBox();
   await page.mouse.move(area.x + 20, area.y + 30);
   await page.mouse.down();
   await page.mouse.move(area.x + area.width / 2, area.y + 50, { steps: 10 });
   await page.mouse.up();
   await expect(reset).toBeEnabled();
-  await zoomSlider.focus();
-  await page.keyboard.press("End");
+  for (let i = 0; i < 6; i++) if (await zoom.isEnabled()) await zoom.click();
   await expect(zoom).toBeDisabled();
-  await expect(zoomSlider).toHaveValue("100");
+  await expect(panSlider).toBeEnabled();
   await reset.click();
   await expect(page.getByRole("link", { name: "Carry On" })).toBeVisible();
   await page.getByRole("button", { name: "收起图表和模组列表" }).click();

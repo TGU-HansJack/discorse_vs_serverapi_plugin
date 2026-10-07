@@ -100,7 +100,7 @@ function chartButton(action, label, icon) {
 export function historyMarkup() {
   return `<section class="vsserverapi-history" aria-label="最近 7 天在线玩家">
     <div class="vsserverapi-history-header"><h4>在线玩家</h4><div class="vsserverapi-history-controls">
-      <input class="vsserverapi-history-zoom" type="range" min="0" max="100" value="0" aria-label="调整时间轴缩放" disabled>
+      <input class="vsserverapi-history-pan" type="range" min="0" max="100" value="0" aria-label="横向移动时间轴" disabled>
       ${chartButton("out", "缩小时间轴", "minus")}
       ${chartButton("in", "放大时间轴", "plus")}
       ${chartButton("reset", "重置为最近 7 天", "rotate-left")}
@@ -115,7 +115,7 @@ export function historyMarkup() {
 function drawHistory(section, data) {
   const host = section.querySelector(".vsserverapi-history-plot");
   const readout = section.querySelector(".vsserverapi-history-readout");
-  const zoomSlider = section.querySelector(".vsserverapi-history-zoom");
+  const panSlider = section.querySelector(".vsserverapi-history-pan");
   const status = section.querySelector("[role=status]");
   const buttons = Object.fromEntries([...section.querySelectorAll("[data-history-action]")].map((button) => [button.dataset.historyAction, button]));
   const min = data[0][0];
@@ -146,10 +146,10 @@ function drawHistory(section, data) {
     const canZoom = total > MIN_SPAN + 1;
     buttons.in.disabled = !canZoom || span <= MIN_SPAN + 1;
     buttons.out.disabled = buttons.reset.disabled = !canZoom || span >= total - 1;
-    zoomSlider.disabled = !canZoom;
-    const value = canZoom ? Math.round(100 * Math.log(total / span) / Math.log(total / MIN_SPAN)) : 0;
-    zoomSlider.value = String(value);
-    zoomSlider.setAttribute("aria-valuetext", `显示约 ${Math.round(span / HOUR)} 小时`);
+    const canPan = total - span > 1;
+    panSlider.disabled = !canPan;
+    panSlider.value = String(canPan ? Math.round((range.min - min) / (total - span) * 100) : 0);
+    panSlider.setAttribute("aria-valuetext", `显示约 ${Math.round(span / HOUR)} 小时`);
   }
 
   function setRange(start, span) {
@@ -164,9 +164,9 @@ function drawHistory(section, data) {
     setRange((range.min + range.max - nextSpan) / 2, nextSpan);
   }
 
-  function setZoom(value) {
-    const span = total / Math.pow(total / MIN_SPAN, Number(value) / 100);
-    setRange((range.min + range.max - span) / 2, span);
+  function pan(value) {
+    const span = range.max - range.min;
+    setRange(min + (total - span) * Number(value) / 100, span);
   }
 
   status.hidden = true;
@@ -244,7 +244,7 @@ function drawHistory(section, data) {
   listen(buttons.in, "click", () => zoom(0.5));
   listen(buttons.out, "click", () => zoom(2));
   listen(buttons.reset, "click", () => setRange(min, total));
-  listen(zoomSlider, "input", () => setZoom(zoomSlider.value));
+  listen(panSlider, "input", () => pan(panSlider.value));
   listen(host, "wheel", (event) => {
     if (event.ctrlKey || event.metaKey) return;
     const delta = event.deltaX || (event.shiftKey ? event.deltaY : 0);
