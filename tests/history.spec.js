@@ -109,6 +109,7 @@ test("renders axes and canvas, zooms, pans, selects, resets and preserves mod to
   await expect(page.locator(".vsserverapi-mods h4 span")).toHaveCount(0);
   await expect(page.locator(".vsserverapi-mod-card")).toHaveCount(1);
   await expect(page.locator(".vsserverapi-mod-card")).toContainText(/Carry On.*v1\.0\.0.*CreativeMode/);
+  await expect(page.locator(".vsserverapi-mod-cover")).toHaveAttribute("src", "https://mods.vintagestory.at/web/img/mod-default.png");
   await expect(page.getByRole("link", { name: "下载 Carry On 的最新版本" })).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
   await expect(chart.locator(".vsserverapi-history-scroll")).toHaveCount(0);

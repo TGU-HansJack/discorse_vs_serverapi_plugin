@@ -9,6 +9,7 @@ const DISPLAY_FIELDS = [
   ["startedAtUtc", "启动时间"],
   ["uptimeSeconds", "运行时长"]
 ];
+const DEFAULT_MOD_COVER = "https://mods.vintagestory.at/web/img/mod-default.png";
 
 let modsSectionSequence = 0;
 
@@ -116,10 +117,6 @@ function modValue(mod, keys) {
   return "";
 }
 
-function modInitials(name) {
-  return name.trim().slice(0, 2).toUpperCase();
-}
-
 function downloadIcon() {
   return `<svg class="fa d-icon d-icon-download svg-icon" width="1em" height="1em" aria-hidden="true"><use href="#download"></use></svg>`;
 }
@@ -136,9 +133,7 @@ function renderMods(mods, apiUrl) {
     const url = resolveAssetUrl(modValue(mod, ["latestDownloadUrl", "downloadUrl", "url", "website"]), apiUrl);
     const versionText = version ? (version.toLowerCase().startsWith("v") ? version : `v${version}`) : "";
     const downloadLabel = `下载 ${name} 的最新版本`;
-    const coverMarkup = cover
-      ? `<img class="vsserverapi-mod-cover" src="${escapeHtml(cover)}" alt="" loading="lazy" data-mod-initials="${escapeAttribute(modInitials(name))}">`
-      : `<div class="vsserverapi-mod-cover vsserverapi-mod-cover-placeholder" aria-hidden="true">${escapeHtml(modInitials(name))}</div>`;
+    const coverMarkup = `<img class="vsserverapi-mod-cover" src="${escapeHtml(cover || DEFAULT_MOD_COVER)}" alt="" loading="lazy">`;
     const download = url
       ? `<a class="btn no-text btn-flat vsserverapi-mod-download" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttribute(downloadLabel)}" title="${escapeAttribute(downloadLabel)}">${downloadIcon()}</a>`
       : `<button type="button" class="btn no-text btn-flat vsserverapi-mod-download" aria-label="${escapeAttribute(downloadLabel)}" title="${escapeAttribute(downloadLabel)}" disabled>${downloadIcon()}</button>`;
@@ -179,9 +174,9 @@ function renderCard(container, data, apiUrl) {
   const image = card.querySelector("img");
   if (image) image.addEventListener("error", () => image.replaceWith(Object.assign(document.createElement("div"), { className: "vsserverapi-cover-placeholder", textContent: "VS" })), { once: true });
   card.querySelectorAll("img.vsserverapi-mod-cover").forEach((cover) => {
-    cover.addEventListener("error", () => cover.replaceWith(Object.assign(document.createElement("div"), {
-      className: "vsserverapi-mod-cover vsserverapi-mod-cover-placeholder", textContent: cover.dataset.modInitials
-    })), { once: true });
+    cover.addEventListener("error", () => {
+      if (cover.getAttribute("src") !== DEFAULT_MOD_COVER) cover.setAttribute("src", DEFAULT_MOD_COVER);
+    }, { once: true });
   });
 }
 
