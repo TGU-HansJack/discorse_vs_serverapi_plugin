@@ -2,14 +2,10 @@ import { withPluginApi } from "discourse/lib/plugin-api";
 import { historyMarkup, loadHistory } from "../lib/vsserverapi-history";
 
 const DISPLAY_FIELDS = [
-  ["profileName", "配置"],
   ["version", "游戏版本"],
   ["isRunning", "运行状态"],
-  ["serverStatus", "服务器状态"],
   ["worldName", "世界名称"],
-  ["address", "服务器地址"],
   ["onlinePlayers", "在线玩家"],
-  ["maxPlayers", "最大玩家数"],
   ["startedAtUtc", "启动时间"],
   ["uptimeSeconds", "运行时长"]
 ];
@@ -93,7 +89,7 @@ function resolveAssetUrl(value, apiUrl) {
 }
 
 function renderInfo(data) {
-  const known = new Set(DISPLAY_FIELDS.map(([key]) => key).concat(["profileId", "serverName", "description", "coverUrl", "mods", "playerCountHistory", "playerCountHistoryMode", "playerCountHistoryHours"]));
+  const known = new Set(DISPLAY_FIELDS.map(([key]) => key).concat(["profileId", "profileName", "serverName", "description", "coverUrl", "mods", "serverStatus", "address", "maxPlayers", "playerCountHistory", "playerCountHistoryMode", "playerCountHistoryHours"]));
   const rows = [];
   for (const [key, label] of DISPLAY_FIELDS) {
     if (!(key in data)) continue;
