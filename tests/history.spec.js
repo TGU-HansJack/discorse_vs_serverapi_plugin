@@ -105,6 +105,11 @@ test("renders axes and canvas, zooms, pans, selects, resets and preserves mod to
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await expect(chart).toBeVisible();
   await expect(page.locator(".vsserverapi-mods")).toBeVisible();
+  await expect(page.locator(".vsserverapi-mods h4")).toHaveText("模组列表");
+  await expect(page.locator(".vsserverapi-mods h4 span")).toHaveCount(0);
+  await expect(page.locator(".vsserverapi-mod-card")).toHaveCount(1);
+  await expect(page.locator(".vsserverapi-mod-card")).toContainText(/Carry On.*v1\.0\.0.*CreativeMode/);
+  await expect(page.getByRole("link", { name: "下载 Carry On 的最新版本" })).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
   await expect(chart.locator(".vsserverapi-history-scroll")).toHaveCount(0);
   await expect(panSlider).toBeDisabled();
@@ -207,7 +212,7 @@ test("renders axes and canvas, zooms, pans, selects, resets and preserves mod to
   await page.screenshot({ path: "test-results/history-desktop.png", fullPage: true });
   await page.evaluate(() => window.addCard());
   await expect(page.locator("canvas")).toHaveCount(2);
-  await page.locator("article").evaluate((el) => el.remove());
+  await page.locator("article:not(.vsserverapi-mod-card)").evaluate((el) => el.remove());
   await page.waitForTimeout(100);
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await zoom.click();

@@ -107,16 +107,44 @@ function renderInfo(data) {
   return rows.join("");
 }
 
-function renderMods(mods) {
+function modValue(mod, keys) {
+  for (const key of keys) {
+    const value = mod?.[key];
+    if (Array.isArray(value) && value.length) return value.filter(Boolean).join(", ");
+    if (value !== null && value !== undefined && String(value).trim()) return String(value);
+  }
+  return "";
+}
+
+function modInitials(name) {
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
+function downloadIcon() {
+  return `<svg class="fa d-icon d-icon-download svg-icon" width="1em" height="1em" aria-hidden="true"><use href="#download"></use></svg>`;
+}
+
+function renderMods(mods, apiUrl) {
   if (!Array.isArray(mods)) return "";
-  const tags = mods.map((mod) => {
-    const name = mod && (mod.name || mod.modId);
+  const cards = mods.map((mod) => {
+    const name = modValue(mod, ["name", "modName", "modId"]);
     if (!name) return "";
-    const url = mod.url && /^https?:\/\//i.test(String(mod.url)) ? String(mod.url) : "";
-    const tag = `<span class="vsserverapi-mod-tag">${escapeHtml(name)}</span>`;
-    return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${tag}</a>` : tag;
+    const version = modValue(mod, ["version", "modVersion", "latestVersion"]);
+    const author = modValue(mod, ["author", "authors", "creator", "owner"]);
+    const description = modValue(mod, ["description", "summary", "modDescription"]) || "暂无介绍";
+    const cover = resolveAssetUrl(modValue(mod, ["coverUrl", "cover", "imageUrl", "iconUrl", "logoUrl", "thumbnailUrl"]), apiUrl);
+    const url = resolveAssetUrl(modValue(mod, ["latestDownloadUrl", "downloadUrl", "url", "website"]), apiUrl);
+    const versionText = version ? (version.toLowerCase().startsWith("v") ? version : `v${version}`) : "";
+    const downloadLabel = `下载 ${name} 的最新版本`;
+    const coverMarkup = cover
+      ? `<img class="vsserverapi-mod-cover" src="${escapeHtml(cover)}" alt="" loading="lazy" data-mod-initials="${escapeAttribute(modInitials(name))}">`
+      : `<div class="vsserverapi-mod-cover vsserverapi-mod-cover-placeholder" aria-hidden="true">${escapeHtml(modInitials(name))}</div>`;
+    const download = url
+      ? `<a class="btn no-text btn-flat vsserverapi-mod-download" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttribute(downloadLabel)}" title="${escapeAttribute(downloadLabel)}">${downloadIcon()}</a>`
+      : `<button type="button" class="btn no-text btn-flat vsserverapi-mod-download" aria-label="${escapeAttribute(downloadLabel)}" title="${escapeAttribute(downloadLabel)}" disabled>${downloadIcon()}</button>`;
+    return `<article class="vsserverapi-mod-card">${coverMarkup}<div class="vsserverapi-mod-copy"><div class="vsserverapi-mod-meta"><strong>${escapeHtml(name)}</strong>${versionText ? `<span>${escapeHtml(versionText)}</span>` : ""}${author ? `<span>${escapeHtml(author)}</span>` : ""}</div><p>${escapeHtml(description)}</p></div>${download}</article>`;
   }).filter(Boolean).join("");
-  return `<section class="vsserverapi-mods"><h4>模组列表 <span>${mods.length}</span></h4><div class="vsserverapi-mod-tags">${tags || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
+  return `<section class="vsserverapi-mods"><h4>模组列表</h4><div class="vsserverapi-mod-list">${cards || "<span class=\"vsserverapi-empty\">暂无模组</span>"}</div></section>`;
 }
 
 function renderCard(container, data, apiUrl) {
@@ -133,7 +161,7 @@ function renderCard(container, data, apiUrl) {
   card.innerHTML = `<div class="vsserverapi-main">` +
     `<div class="vsserverapi-cover-wrap">${cover ? `<img class="vsserverapi-cover" src="${escapeHtml(cover)}" alt="" loading="lazy">` : `<div class="vsserverapi-cover-placeholder" aria-hidden="true">VS</div>`}</div>` +
     `<div class="vsserverapi-summary"><div class="vsserverapi-title-row"><h3>${escapeHtml(title)}</h3><span class="vsserverapi-status ${statusClass}">${statusText}</span>${detailsToggle}</div>${description}<dl class="vsserverapi-fields">${renderInfo(data)}</dl></div></div>` +
-    `<div class="vsserverapi-details" id="${detailsId}" hidden>${historyMarkup()}${renderMods(data.mods)}</div>`;
+    `<div class="vsserverapi-details" id="${detailsId}" hidden>${historyMarkup()}${renderMods(data.mods, apiUrl)}</div>`;
   loadHistory(card.querySelector(".vsserverapi-history"), data, apiUrl);
   const toggle = card.querySelector(".vsserverapi-mod-toggle");
   const detailsSection = card.querySelector(`#${detailsId}`);
@@ -150,6 +178,11 @@ function renderCard(container, data, apiUrl) {
   }
   const image = card.querySelector("img");
   if (image) image.addEventListener("error", () => image.replaceWith(Object.assign(document.createElement("div"), { className: "vsserverapi-cover-placeholder", textContent: "VS" })), { once: true });
+  card.querySelectorAll("img.vsserverapi-mod-cover").forEach((cover) => {
+    cover.addEventListener("error", () => cover.replaceWith(Object.assign(document.createElement("div"), {
+      className: "vsserverapi-mod-cover vsserverapi-mod-cover-placeholder", textContent: cover.dataset.modInitials
+    })), { once: true });
+  });
 }
 
 function showError(container, message) {

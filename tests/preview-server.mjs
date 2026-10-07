@@ -29,6 +29,7 @@ body { margin:0; background:var(--secondary); color:var(--primary); font:15px/1.
 <symbol id="rotate-left" viewBox="0 0 512 512"><path d="M48 160H192L144 112A176 176 0 1 1 80 304H32A224 224 0 1 0 112 80L48 16z"/></symbol>
 <symbol id="chevron-down" viewBox="0 0 448 512"><path d="M224 352 32 160 64 128 224 288 384 128 416 160z"/></symbol>
 <symbol id="chevron-up" viewBox="0 0 448 512"><path d="M224 128 32 320 64 352 224 192 384 352 416 320z"/></symbol>
+<symbol id="download" viewBox="0 0 512 512"><path d="M288 32v260.7l86.6-86.6 22.6 22.6L272 353.9 146.7 228.7l22.6-22.6 86.6 86.6V32h32zM96 448v-64H64v96h384v-96h-32v64H96z"/></symbol>
 </defs></svg><main id="cooked"></main><script type="module">
 import initializer from '/javascripts/discourse/initializers/vsserverapi-cards.js';
 const params = new URLSearchParams(location.search);
@@ -57,7 +58,7 @@ createServer(async (request, response) => {
         body = JSON.stringify({ history: history(), retentionHours: 168 });
       } else {
         const data = { profileId: "hidden", serverName: "Vintage Story 测试服务器", version: "1.22.7", isRunning: true, serverStatus: "running", worldName: "测试世界", address: "127.0.0.1:42420", onlinePlayers: 12, maxPlayers: 64, uptimeSeconds: 3600,
-          mods: [{ name: "Carry On", url: "https://mods.vintagestory.at/carryon" }], playerCountHistoryHours: 168, playerCountHistoryMode: "on-change" };
+          mods: [{ name: "Carry On", version: "1.0.0", author: "CreativeMode", description: "为搬运方块和容器提供便捷工具。", url: "https://mods.vintagestory.at/carryon" }], playerCountHistoryHours: 168, playerCountHistoryMode: "on-change" };
         if (mode === "normal") data.playerCountHistory = history();
         data.playerCountHistoryMode = "on-change";
         if (mode === "empty") data.playerCountHistory = [];
