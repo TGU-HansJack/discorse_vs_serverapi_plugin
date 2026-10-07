@@ -85,14 +85,14 @@ test("selects three-to-five-hour windows and assigns cross-midnight windows by l
   await context.close();
 });
 
-test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod toggle", async ({ page }) => {
+test("renders axes and canvas, zooms, selects, resets and preserves mod toggle", async ({ page }) => {
   const errors = [];
   const historyRequests = [];
   page.on("request", (request) => { if (request.url().includes("/players/history")) historyRequests.push(request.url()); });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   const chart = page.locator(".vsserverapi-history");
-  const scroll = chart.locator(".vsserverapi-history-scroll");
+  const zoomSlider = page.getByRole("slider", { name: "调整时间轴缩放" });
   const zoom = page.getByRole("button", { name: "放大时间轴" });
   const reset = page.getByRole("button", { name: "重置为最近 7 天" });
   await expect(page.locator(".vsserverapi-fields")).not.toContainText(/profileId|playerCountHistory|playerCountHistoryMode|playerCountHistoryHours/);
@@ -106,6 +106,8 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   await expect(chart).toBeVisible();
   await expect(page.locator(".vsserverapi-mods")).toBeVisible();
   await expect(chart.locator("canvas")).toBeVisible();
+  await expect(chart.locator(".vsserverapi-history-scroll")).toHaveCount(0);
+  await expect(zoomSlider).toBeEnabled();
   await expect(chart.locator(".u-axis")).toHaveCount(2);
   await expect(chart.locator(".vsserverapi-history-key, .vsserverapi-history-value, .vsserverapi-history-best")).toHaveCount(0);
   await expect(chart.locator(".vsserverapi-history-readout")).toBeHidden();
@@ -172,6 +174,7 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
   await page.getByRole("button", { name: "展开图表和模组列表" }).click();
   await zoom.click();
   await expect(reset).toBeEnabled();
+  expect(Number(await zoomSlider.inputValue())).toBeGreaterThan(0);
   const zoomedGreenBands = await greenBands();
   const plotBounds = await chart.locator(".u-over").evaluate((element) => ({ left: element.offsetLeft, width: element.clientWidth }));
   const plotCenter = plotBounds.left + plotBounds.width / 2;
@@ -180,24 +183,19 @@ test("renders axes and canvas, zooms, scrolls, selects, resets and preserves mod
     return zoomedGreenBands.map(([nextLeft, nextRight]) => Math.abs((nextLeft + nextRight) / 2 - expected));
   });
   expect(Math.min(...transformErrors)).toBeLessThan(4);
-  expect(await scroll.evaluate((el) => el.scrollWidth / el.clientWidth)).toBeCloseTo(2, 1);
-  await scroll.focus();
-  await page.keyboard.press("End");
-  await expect.poll(() => scroll.evaluate((el) => el.scrollLeft + el.clientWidth - el.scrollWidth)).toBeCloseTo(0, 0);
-  await page.keyboard.press("Home");
-  await expect.poll(() => scroll.evaluate((el) => el.scrollLeft)).toBe(0);
-  await scroll.evaluate((el) => { el.scrollLeft = el.scrollWidth / 4; });
-  await expect.poll(() => scroll.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
   await reset.click();
   await expect(reset).toBeDisabled();
+  await expect(zoomSlider).toHaveValue("0");
   const area = await chart.locator(".u-over").boundingBox();
   await page.mouse.move(area.x + 20, area.y + 30);
   await page.mouse.down();
   await page.mouse.move(area.x + area.width / 2, area.y + 50, { steps: 10 });
   await page.mouse.up();
   await expect(reset).toBeEnabled();
-  for (let i = 0; i < 6; i++) if (await zoom.isEnabled()) await zoom.click();
+  await zoomSlider.focus();
+  await page.keyboard.press("End");
   await expect(zoom).toBeDisabled();
+  await expect(zoomSlider).toHaveValue("100");
   await reset.click();
   await expect(page.getByRole("link", { name: "Carry On" })).toBeVisible();
   await page.getByRole("button", { name: "收起图表和模组列表" }).click();
@@ -238,8 +236,8 @@ test("mobile and dark layouts fit, resize and support horizontal touch panning",
   await expect(page.locator("canvas")).toBeVisible();
   await page.getByRole("button", { name: "放大时间轴" }).click();
   const plot = page.locator(".vsserverapi-history-plot");
-  const scroll = page.locator(".vsserverapi-history-scroll");
-  const before = await scroll.evaluate((el) => el.scrollLeft);
+  await expect(page.locator(".vsserverapi-history-scroll")).toHaveCount(0);
+  const before = await page.locator("canvas").evaluate((canvas) => canvas.toDataURL());
   const bounds = await plot.boundingBox();
   const cdp = await context.newCDPSession(page);
   const touchY = bounds.y + bounds.height / 2;
@@ -248,7 +246,7 @@ test("mobile and dark layouts fit, resize and support horizontal touch panning",
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: touchY }] });
   }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await expect.poll(() => scroll.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
+  await expect.poll(() => page.locator("canvas").evaluate((canvas) => canvas.toDataURL())).not.toBe(before);
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
